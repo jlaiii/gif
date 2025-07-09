@@ -6,6 +6,7 @@
     <title>Modern MP4 to GIF Converter</title>
     <style>
         :root {
+            /* Light Theme (Default) */
             --background-color: #f0f2f5;
             --container-background: #ffffff;
             --primary-accent: #6c5ce7;
@@ -17,6 +18,28 @@
             --error-color: #dc3545;
             --shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
             --border-radius: 12px;
+            --btn-secondary-bg: #e9ecef;
+            --btn-secondary-hover-bg: #d8dde2;
+            --dropzone-hover-bg: #f8f7ff;
+            --stats-grid-bg: #f9f9f9;
+            --progress-bar-bg: #e9ecef;
+            --toggle-bg: #ccc;
+        }
+        
+        body[data-theme="dark"] {
+            /* Dark Theme */
+            --background-color: #1a1b26;
+            --container-background: #242531;
+            --text-color: #c0caf5;
+            --text-light: #7b81a1;
+            --border-color: #414868;
+            --shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+            --btn-secondary-bg: #414868;
+            --btn-secondary-hover-bg: #565f89;
+            --dropzone-hover-bg: #2a2c3a;
+            --stats-grid-bg: #1e1f2b;
+            --progress-bar-bg: #333649;
+            --toggle-bg: #414868;
         }
 
         body {
@@ -28,6 +51,7 @@
             margin: 0;
             background-color: var(--background-color);
             color: var(--text-color);
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
         .main-container {
@@ -43,7 +67,7 @@
             border-radius: var(--border-radius);
             box-shadow: var(--shadow);
             text-align: center;
-            transition: opacity 0.3s ease, transform 0.3s ease;
+            transition: opacity 0.3s ease, transform 0.3s ease, background-color 0.3s ease;
         }
 
         /* --- Initial State (Dropzone) --- */
@@ -60,7 +84,7 @@
         }
         #dropZone.drag-over {
             border-color: var(--primary-accent);
-            background-color: #f8f7ff;
+            background-color: var(--dropzone-hover-bg);
         }
         #dropZone .drop-icon {
             font-size: 48px;
@@ -87,10 +111,11 @@
         #progress-bar-container {
             width: 100%;
             height: 12px;
-            background-color: #e9ecef;
+            background-color: var(--progress-bar-bg);
             border-radius: 6px;
             overflow: hidden;
             margin: 25px 0;
+            transition: background-color 0.3s ease;
         }
         #progress-bar {
             width: 0%;
@@ -128,8 +153,9 @@
             text-align: left;
             margin: 20px 0;
             padding: 15px;
-            background-color: #f9f9f9;
+            background-color: var(--stats-grid-bg);
             border-radius: 8px;
+            transition: background-color 0.3s ease;
         }
         .stats-grid div strong {
             display: block;
@@ -167,11 +193,11 @@
             background-color: var(--primary-accent-dark);
         }
         .btn-secondary {
-            background-color: #e9ecef;
+            background-color: var(--btn-secondary-bg);
             color: var(--text-color);
         }
         .btn-secondary:hover {
-            background-color: #d8dde2;
+            background-color: var(--btn-secondary-hover-bg);
         }
         .error-message {
             color: var(--error-color);
@@ -210,6 +236,7 @@
             box-shadow: var(--shadow);
             width: 90%;
             max-width: 450px;
+            transition: background-color 0.3s ease;
         }
         .settings-content h2 {
             margin-top: 0;
@@ -243,14 +270,89 @@
             border: 1px solid var(--border-color);
             border-radius: 8px;
             box-sizing: border-box;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
         }
         #customMaxWidthInput {
             margin-top: 10px;
         }
 
+        /* --- Theme Toggle Switch --- */
+        .theme-switch-wrapper {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1001;
+        }
+        .theme-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+        .theme-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--toggle-bg);
+            transition: .4s;
+            border-radius: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 4px;
+        }
+        .slider .icon {
+            font-size: 18px;
+            line-height: 1;
+            transition: opacity 0.4s;
+        }
+        .slider .sun { opacity: 1; }
+        .slider .moon { opacity: 0; }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: var(--primary-accent);
+        }
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+        body[data-theme="light"] .slider .sun { opacity: 1; }
+        body[data-theme="light"] .slider .moon { opacity: 0; }
+        body[data-theme="dark"] .slider .sun { opacity: 0; }
+        body[data-theme="dark"] .slider .moon { opacity: 1; }
     </style>
 </head>
 <body>
+
+    <div class="theme-switch-wrapper">
+        <label class="theme-switch" for="themeToggle">
+            <input type="checkbox" id="themeToggle" />
+            <span class="slider round">
+                <span class="icon sun">☀️</span>
+                <span class="icon moon">🌙</span>
+            </span>
+        </label>
+    </div>
+    
     <div class="main-container">
 
         <!-- STATE 1: Initial Drop Zone -->
@@ -317,7 +419,6 @@
             <div class="setting-group">
                 <label for="fpsInput">Frames Per Second (FPS): <span id="fpsValue">15</span></label>
                 <div class="slider-group">
-                    <!-- CHANGE: Default FPS is now 15 -->
                     <input type="range" id="fpsInput" value="15" min="1" max="30">
                 </div>
                 <p class="info-note">Higher FPS = smoother animation & bigger file size.</p>
@@ -327,13 +428,13 @@
                 <label for="maxWidthPreset">Max Width</label>
                 <select id="maxWidthPreset">
                     <option value="0">Original Width</option>
-                    <option value="240" selected>Small (240px)</option>
-                    <option value="320">Medium (320px)</option>
+                    <option value="240">Small (240px)</option>
+                    <option value="320" selected>Medium (320px)</option>
                     <option value="480">Large (480px)</option>
                     <option value="640">X-Large (640px)</option>
                     <option value="custom">Custom</option>
                 </select>
-                <input type="number" id="customMaxWidthInput" value="240" min="0" placeholder="Enter custom width" style="display: none;">
+                <input type="number" id="customMaxWidthInput" value="320" min="0" placeholder="Enter custom width" style="display: none;">
                 <p class="info-note">Scales the GIF proportionally.</p>
             </div>
 
@@ -349,6 +450,35 @@
     <script src="gif.js"></script>
 
     <script>
+        // --- Theme Toggle Logic (runs immediately to prevent flash of wrong theme) ---
+        const themeToggle = document.getElementById('themeToggle');
+        
+        function setTheme(theme) {
+            document.body.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+            if (themeToggle) {
+                themeToggle.checked = theme === 'dark';
+            }
+        }
+
+        function toggleTheme() {
+            setTheme(themeToggle.checked ? 'dark' : 'light');
+        }
+        
+        // Check for saved theme preference or system preference on page load
+        (function () {
+            const savedTheme = localStorage.getItem('theme');
+            const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (savedTheme) {
+                setTheme(savedTheme);
+            } else if (systemPrefersDark) {
+                setTheme('dark');
+            } else {
+                setTheme('light'); // Default to light
+            }
+        })();
+        
+        // Main Application Logic
         document.addEventListener('DOMContentLoaded', () => {
             // --- DOM Elements ---
             const videoFile = document.getElementById('videoFile');
@@ -385,6 +515,11 @@
             const customMaxWidthInput = document.getElementById('customMaxWidthInput');
 
             let videoObjectURL = null;
+            
+            // Add theme toggle listener
+            if(themeToggle) {
+                themeToggle.addEventListener('change', toggleTheme);
+            }
 
             // --- UI State Management ---
             function showState(stateName) {
@@ -404,14 +539,17 @@
                 }
                 videoPlayer.src = '';
                 gifPreview.src = '';
-                URL.revokeObjectURL(gifDownloadLink.href);
+                if (gifDownloadLink.href) {
+                    URL.revokeObjectURL(gifDownloadLink.href);
+                }
                 gifDownloadLink.removeAttribute('href');
             }
 
             // --- Helper Functions ---
             const formatTime = (ms) => {
-                const seconds = Math.floor(ms / 1000) % 60;
-                const minutes = Math.floor(ms / (1000 * 60));
+                const totalSeconds = Math.floor(ms / 1000);
+                const seconds = totalSeconds % 60;
+                const minutes = Math.floor(totalSeconds / 60);
                 return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
             };
             
@@ -424,31 +562,27 @@
                 return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
             };
 
-            function updateSettingsDisplay() {
-                qualityValueSpan.textContent = qualityInput.value;
-                fpsValueSpan.textContent = fpsInput.value;
-            }
-
             // --- Event Listeners ---
             
             // Allow clicking the dropzone to open file dialog
             dropZone.addEventListener('click', () => videoFile.click());
             
-            // CHANGE: Global drag and drop listeners on the whole document
+            // Global drag and drop listeners on the whole document
             document.addEventListener('dragover', (e) => {
-                e.preventDefault(); // This is crucial to allow dropping
+                e.preventDefault();
                 if (!initialState.classList.contains('hidden')) {
                     dropZone.classList.add('drag-over');
                 }
             });
 
-            document.addEventListener('dragleave', () => {
-                dropZone.classList.remove('drag-over');
+            document.addEventListener('dragleave', (e) => {
+                if (e.relatedTarget === null) {
+                    dropZone.classList.remove('drag-over');
+                }
             });
 
             document.addEventListener('drop', (e) => {
                 e.preventDefault();
-                // Only process the drop if we are on the initial screen
                 if (!initialState.classList.contains('hidden')) {
                     dropZone.classList.remove('drag-over');
                     const file = e.dataTransfer.files[0];
@@ -456,7 +590,6 @@
                 }
             });
             
-            // File Input Change (for when user clicks to select)
             videoFile.addEventListener('change', (e) => {
                 const file = e.target.files[0];
                 handleFile(file);
@@ -474,18 +607,17 @@
             // Settings Inputs
             qualityInput.addEventListener('input', () => qualityValueSpan.textContent = qualityInput.value);
             fpsInput.addEventListener('input', () => fpsValueSpan.textContent = fpsInput.value);
-            maxWidthPreset.addEventListener('change', () => {
-                if (maxWidthPreset.value === 'custom') {
-                    customMaxWidthInput.style.display = 'block';
-                    customMaxWidthInput.disabled = false;
+            maxWidthPreset.addEventListener('change', (e) => {
+                const isCustom = e.target.value === 'custom';
+                customMaxWidthInput.style.display = isCustom ? 'block' : 'none';
+                customMaxWidthInput.disabled = !isCustom;
+                if (isCustom) {
                     customMaxWidthInput.focus();
                 } else {
-                    customMaxWidthInput.style.display = 'none';
-                    customMaxWidthInput.disabled = true;
+                    customMaxWidthInput.value = e.target.value;
                 }
             });
 
-            // Reset Button
             resetBtn.addEventListener('click', resetUI);
             
             // --- Core Logic ---
@@ -502,7 +634,6 @@
 
             async function startConversion(videoSrc, originalFileName) {
                 showState('processingState');
-                
                 let conversionStartTime;
 
                 try {
@@ -525,8 +656,9 @@
                     let outputWidth = videoWidth;
                     let outputHeight = videoHeight;
                     if (maxWidth > 0 && videoWidth > maxWidth) {
+                        const ratio = videoWidth / videoHeight;
                         outputWidth = maxWidth;
-                        outputHeight = Math.round((videoHeight / videoWidth) * outputWidth);
+                        outputHeight = Math.round(outputWidth / ratio);
                     }
                     outputWidth = Math.round(outputWidth / 2) * 2;
                     outputHeight = Math.round(outputHeight / 2) * 2;
@@ -549,29 +681,37 @@
                     gif.on('finished', (blob) => {
                         const conversionEndTime = Date.now();
                         const totalTime = conversionEndTime - conversionStartTime;
-
                         const gifURL = URL.createObjectURL(blob);
+                        
                         gifPreview.src = gifURL;
                         gifDownloadLink.href = gifURL;
                         gifDownloadLink.download = `${originalFileName.split('.').slice(0, -1).join('.')}.gif`;
-
                         fileSizeStat.textContent = formatBytes(blob.size);
                         conversionTimeStat.textContent = `${(totalTime / 1000).toFixed(2)} seconds`;
                         
                         showState('completedState');
                     });
                     
-                    gif.on('progress', (p) => { /* Ignored for now */ });
-
                     conversionStartTime = Date.now();
                     videoPlayer.currentTime = 0;
 
                     const captureFrame = async (now, metadata) => {
-                        if (videoPlayer.currentTime >= duration) {
-                            gif.render();
+                        if (videoPlayer.seeking) {
+                            videoPlayer.requestVideoFrameCallback(captureFrame);
                             return;
                         }
                         
+                        const targetTime = processedFrames / desiredFPS;
+                        if (videoPlayer.currentTime < targetTime && !videoPlayer.ended) {
+                             videoPlayer.requestVideoFrameCallback(captureFrame);
+                             return;
+                        }
+                        
+                        if (videoPlayer.ended) {
+                             gif.render();
+                             return;
+                        }
+
                         ctx.drawImage(videoPlayer, 0, 0, outputWidth, outputHeight);
                         gif.addFrame(videoCanvas, { delay: frameDelay, copy: true });
                         processedFrames++;
@@ -585,13 +725,28 @@
                         const estimatedRemainingTime = (totalFrames - processedFrames) * timePerFrame;
 
                         timeStats.innerHTML = `<span>Time Elapsed: ${formatTime(elapsedTime)}</span> | <span>Est. Remaining: ${processedFrames > 5 ? formatTime(estimatedRemainingTime) : 'calculating...'}</span>`;
-
-                        videoPlayer.currentTime = Math.min(duration, videoPlayer.currentTime + (1 / desiredFPS));
                         
-                        videoPlayer.requestVideoFrameCallback(captureFrame);
+                        const nextTime = (processedFrames / desiredFPS);
+                        if (nextTime < duration) {
+                            videoPlayer.currentTime = nextTime;
+                        } else {
+                            videoPlayer.currentTime = duration;
+                        }
+                        
+                        if (!videoPlayer.ended) {
+                            videoPlayer.requestVideoFrameCallback(captureFrame);
+                        } else {
+                            gif.render();
+                        }
                     };
-
-                    videoPlayer.requestVideoFrameCallback(captureFrame);
+                    
+                    // A 'seeked' listener to kick off the next frame capture
+                    videoPlayer.addEventListener('seeked', () => {
+                        videoPlayer.requestVideoFrameCallback(captureFrame);
+                    }, { once: true });
+                    
+                    // Start the process
+                    videoPlayer.currentTime = 0;
 
                 } catch (err) {
                     console.error('Conversion Error:', err);
@@ -600,9 +755,7 @@
                 }
             }
             
-            // Initial calls to set the UI
             resetUI();
-            updateSettingsDisplay();
         });
     </script>
 </body>
