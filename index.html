@@ -181,8 +181,9 @@
         /* --- Settings Modal --- */
         #settingsBtn {
             position: absolute;
-            top: 20px;
-            right: 20px;
+            /* CHANGE: Adjusted position to fit neatly in the top-right corner of the card */
+            top: 15px;
+            right: 15px;
             background: none;
             border: none;
             font-size: 28px;
@@ -317,14 +318,13 @@
         <div class="settings-content">
             <h2>Conversion Settings</h2>
             
+            <!-- CHANGE: Quality slider made more user-friendly -->
             <div class="setting-group">
-                <label for="qualityInput">Quality (1-30): <span id="qualityValue">10</span></label>
+                <label for="qualityInput">Quality: <span id="qualityValue">75</span>%</label>
                 <div class="slider-group">
-                    <span>High</span>
-                    <input type="range" id="qualityInput" value="10" min="1" max="30">
-                    <span>Low</span>
+                    <input type="range" id="qualityInput" value="75" min="1" max="100">
                 </div>
-                <p class="info-note">Lower number = higher quality & bigger file size.</p>
+                <p class="info-note">Higher quality results in a larger file size.</p>
             </div>
             
             <div class="setting-group">
@@ -437,6 +437,12 @@
                 return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
             };
 
+            // CHANGE: Function to initialize and update settings display text
+            function updateSettingsDisplay() {
+                qualityValueSpan.textContent = qualityInput.value;
+                fpsValueSpan.textContent = fpsInput.value;
+            }
+
             // --- Event Listeners ---
             
             // Drag and Drop
@@ -520,9 +526,13 @@
 
                     // 2. Get Settings
                     const desiredFPS = parseInt(fpsInput.value);
-                    const quality = parseInt(qualityInput.value);
                     let maxWidth = (maxWidthPreset.value === 'custom') ? parseInt(customMaxWidthInput.value) : parseInt(maxWidthPreset.value);
-                    
+
+                    // CHANGE: Translate user-friendly 1-100 quality to gif.js's inverted 1-30 scale
+                    // 100% quality = 1 for gif.js, 1% quality = ~30 for gif.js
+                    const userQuality = parseInt(qualityInput.value);
+                    const quality = Math.round(31 - (userQuality / 100 * 30));
+
                     // 3. Calculate Dimensions
                     let outputWidth = videoWidth;
                     let outputHeight = videoHeight;
@@ -541,7 +551,7 @@
                     // 4. Initialize GIF.js
                     const gif = new GIF({
                         workers: 2,
-                        quality: quality,
+                        quality: quality, // Use the translated quality value
                         workerScript: 'gif.worker.js',
                         width: outputWidth,
                         height: outputHeight,
@@ -609,8 +619,9 @@
                 }
             }
             
-            // Initial call to set the UI
+            // Initial calls to set the UI
             resetUI();
+            updateSettingsDisplay(); // Set initial text for sliders
         });
     </script>
 </body>
