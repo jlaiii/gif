@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MP4 to GIF Converter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 600px;
+            width: 90%;
+        }
+        h1 {
+            color: #0056b3;
+            margin-bottom: 20px;
+        }
+        p {
+            margin-bottom: 25px;
+            color: #555;
+        }
+        input[type="file"] {
+            display: none; /* Hide default input */
+        }
+        .custom-file-upload {
+            border: 2px solid #007bff;
+            display: inline-block;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: white;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+            margin-bottom: 20px;
+        }
+        .custom-file-upload:hover {
+            background-color: #0056b3;
+            border-color: #0056b3;
+        }
+        button {
+            background-color: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+            margin-top: 15px;
+        }
+        button:hover:not(:disabled) {
+            background-color: #218838;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        #status, #error {
+            margin-top: 20px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        #error {
+            color: #dc3545;
+        }
+        #gifDownloadLink {
+            display: block;
+            margin-top: 20px;
+            font-size: 1.1em;
+            color: #007bff;
+            text-decoration: none;
+        }
+        #gifDownloadLink:hover {
+            text-decoration: underline;
+        }
+        #videoPreview {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none; /* Hidden by default */
+        }
+        .settings {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            text-align: left;
+        }
+        .settings label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #444;
+        }
+        .settings input[type="number"] {
+            width: calc(100% - 20px);
+            padding: 8px 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .info-note {
+            font-size: 0.9em;
+            color: #777;
+            margin-top: 10px;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎞️ MP4 to GIF Converter 🔄</h1>
+        <p>Select a video file (MP4, WebM, etc.) and convert it to an animated GIF directly in your browser. No uploads needed!</p>
+
+        <label for="videoFile" class="custom-file-upload">
+            Choose Video File
+        </label>
+        <input type="file" id="videoFile" accept="video/*">
+        <span id="fileName">No file chosen</span>
+
+        <video id="videoPreview" controls></video>
+
+        <div class="settings">
+            <label for="fpsInput">Frames Per Second (FPS):</label>
+            <input type="number" id="fpsInput" value="10" min="1" max="30">
+            <label for="qualityInput">Quality (1-30, lower is better but larger file):</label>
+            <input type="number" id="qualityInput" value="10" min="1" max="30">
+            <label for="maxWidthInput">Max Width (pixels, 0 for original):</label>
+            <input type="number" id="maxWidthInput" value="480" min="0">
+            <div class="info-note">
+                <p><strong>FPS:</strong> Higher FPS means smoother animation but larger file size.</p>
+                <p><strong>Quality:</strong> A lower number (e.g., 1-5) means better quality (more colors) but a larger file size. A higher number (e.g., 20-30) means lower quality (fewer colors) but a smaller file size.</p>
+                <p><strong>Max Width:</strong> Sets the maximum width of the GIF. Video will be scaled proportionally. Use `0` for original video width.</p>
+                <p><strong>Important:</strong> Conversion happens in your browser. Large videos or high quality settings may take a long time or cause browser issues.</p>
+            </div>
+        </div>
+
+        <button id="convertBtn" disabled>Convert to GIF</button>
+
+        <p id="status"></p>
+        <p id="error"></p>
+        <a id="gifDownloadLink" style="display:none;">Download GIF</a>
+
+        <!-- Hidden elements for processing -->
+        <video id="videoPlayer" style="display:none;" muted></video>
+        <canvas id="videoCanvas" style="display:none;"></canvas>
+    </div>
+
+    <!-- GIF.js library -->
+    <script src="gif.js"></script>
+
+    <script>
+        const videoFile = document.getElementById('videoFile');
+        const fileNameSpan = document.getElementById('fileName');
+        const videoPreview = document.getElementById('videoPreview');
+        const convertBtn = document.getElementById('convertBtn');
+        const statusP = document.getElementById('status');
+        const errorP = document.getElementById('error');
+        const gifDownloadLink = document.getElementById('gifDownloadLink');
+
+        const videoPlayer = document.getElementById('videoPlayer');
+        const videoCanvas = document.getElementById('videoCanvas');
+        const ctx = videoCanvas.getContext('2d');
+
+        const fpsInput = document.getElementById('fpsInput');
+        const qualityInput = document.getElementById('qualityInput');
+        const maxWidthInput = document.getElementById('maxWidthInput');
+
+        let videoObjectURL = null;
+
+        // --- Event Listeners ---
+
+        videoFile.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                if (file.type.startsWith('video/')) {
+                    fileNameSpan.textContent = file.name;
+                    errorP.textContent = '';
+                    statusP.textContent = '';
+                    gifDownloadLink.style.display = 'none';
+                    gifDownloadLink.removeAttribute('href');
+
+                    if (videoObjectURL) {
+                        URL.revokeObjectURL(videoObjectURL); // Clean up previous object URL
+                    }
+                    videoObjectURL = URL.createObjectURL(file);
+                    videoPreview.src = videoObjectURL;
+                    videoPlayer.src = videoObjectURL; // Also load into the hidden player
+                    videoPreview.style.display = 'block';
+                    convertBtn.disabled = false;
+                } else {
+                    fileNameSpan.textContent = 'Please select a video file.';
+                    errorP.textContent = 'Invalid file type. Please select a video (e.g., MP4, WebM).';
+                    convertBtn.disabled = true;
+                    videoPreview.style.display = 'none';
+                }
+            } else {
+                fileNameSpan.textContent = 'No file chosen';
+                convertBtn.disabled = true;
+                videoPreview.style.display = 'none';
+            }
+        });
+
+        convertBtn.addEventListener('click', async () => {
+            if (!videoPlayer.src) {
+                errorP.textContent = 'Please select a video first.';
+                return;
+            }
+
+            statusP.textContent = 'Loading video metadata...';
+            errorP.textContent = '';
+            gifDownloadLink.style.display = 'none';
+            convertBtn.disabled = true;
+            videoFile.disabled = true;
+            fpsInput.disabled = true;
+            qualityInput.disabled = true;
+            maxWidthInput.disabled = true;
+
+            try {
+                await new Promise(resolve => {
+                    videoPlayer.onloadedmetadata = () => {
+                        resolve();
+                    };
+                    // In case metadata is already loaded (e.g. user clicks convert again)
+                    if (videoPlayer.readyState >= 1) {
+                        resolve();
+                    }
+                    videoPlayer.load(); // Ensure metadata is loaded
+                });
+
+                const duration = videoPlayer.duration; // in seconds
+                const videoWidth = videoPlayer.videoWidth;
+                const videoHeight = videoPlayer.videoHeight;
+
+                const desiredFPS = parseInt(fpsInput.value);
+                const quality = parseInt(qualityInput.value);
+                let maxWidth = parseInt(maxWidthInput.value);
+
+                if (isNaN(desiredFPS) || desiredFPS < 1) {
+                    throw new Error("Invalid FPS. Please enter a number greater than 0.");
+                }
+                 if (isNaN(quality) || quality < 1 || quality > 30) {
+                    throw new Error("Invalid Quality. Please enter a number between 1 and 30.");
+                }
+
+                let outputWidth = videoWidth;
+                let outputHeight = videoHeight;
+
+                if (maxWidth > 0 && videoWidth > maxWidth) {
+                    outputWidth = maxWidth;
+                    outputHeight = (videoHeight / videoWidth) * outputWidth;
+                }
+
+                // Ensure dimensions are even for GIF compatibility (good practice)
+                outputWidth = Math.round(outputWidth / 2) * 2;
+                outputHeight = Math.round(outputHeight / 2) * 2;
+
+
+                videoCanvas.width = outputWidth;
+                videoCanvas.height = outputHeight;
+
+                const frameDelay = 1000 / desiredFPS; // milliseconds per frame
+                const totalFrames = Math.floor(duration * desiredFPS);
+
+                statusP.textContent = `Converting... (0/${totalFrames} frames processed)`;
+
+                const gif = new GIF({
+                    workers: 2, // Number of web workers to use for conversion
+                    quality: quality, // Lower is better quality, but larger file. 1-30.
+                    workerScript: 'gif.worker.js', // Path to the worker script
+                    width: outputWidth,
+                    height: outputHeight,
+                    background: '#ffffff' // Set a default background color for transparency if needed
+                });
+
+                gif.on('start', () => {
+                    statusP.textContent = `Starting GIF encoding...`;
+                });
+
+                let processedFrames = 0;
+                let currentTime = 0;
+
+                const captureFrame = async () => {
+                    if (currentTime >= duration) {
+                        gif.render();
+                        return;
+                    }
+
+                    videoPlayer.currentTime = currentTime;
+
+                    await new Promise(resolve => {
+                        videoPlayer.requestVideoFrameCallback(() => {
+                            ctx.drawImage(videoPlayer, 0, 0, outputWidth, outputHeight);
+                            gif.addFrame(videoCanvas, { delay: frameDelay, copy: true });
+                            processedFrames++;
+                            statusP.textContent = `Converting... (${processedFrames}/${totalFrames} frames processed)`;
+                            resolve();
+                        });
+                    });
+
+                    currentTime += (1 / desiredFPS);
+                    requestAnimationFrame(captureFrame); // Use requestAnimationFrame for next frame
+                };
+
+                // Start the frame capture loop
+                await new Promise(resolve => {
+                    videoPlayer.onseeked = () => { // Ensure video is seeked to 0 before starting
+                         requestAnimationFrame(captureFrame);
+                         resolve();
+                    };
+                    videoPlayer.currentTime = 0;
+                });
+
+
+                gif.on('progress', (p) => {
+                    statusP.textContent = `Converting... GIF encoding progress: ${(p * 100).toFixed(1)}%`;
+                });
+
+                gif.on('finished', (blob) => {
+                    const gifURL = URL.createObjectURL(blob);
+                    gifDownloadLink.href = gifURL;
+                    gifDownloadLink.download = 'converted.gif';
+                    gifDownloadLink.textContent = 'Download Converted GIF';
+                    gifDownloadLink.style.display = 'block';
+                    statusP.textContent = 'Conversion Complete!';
+                    convertBtn.disabled = false;
+                    videoFile.disabled = false;
+                    fpsInput.disabled = false;
+                    qualityInput.disabled = false;
+                    maxWidthInput.disabled = false;
+
+                    // Clean up object URLs
+                    if (videoObjectURL) {
+                        URL.revokeObjectURL(videoObjectURL);
+                        videoObjectURL = null;
+                        videoPlayer.src = '';
+                        videoPreview.src = '';
+                        videoPreview.style.display = 'none';
+                        fileNameSpan.textContent = 'No file chosen';
+                    }
+                });
+
+                gif.on('error', (err) => {
+                    errorP.textContent = `GIF Conversion Error: ${err.message || err}`;
+                    statusP.textContent = '';
+                    convertBtn.disabled = false;
+                    videoFile.disabled = false;
+                    fpsInput.disabled = false;
+                    qualityInput.disabled = false;
+                    maxWidthInput.disabled = false;
+                     if (videoObjectURL) {
+                        URL.revokeObjectURL(videoObjectURL);
+                        videoObjectURL = null;
+                        videoPlayer.src = '';
+                        videoPreview.src = '';
+                        videoPreview.style.display = 'none';
+                        fileNameSpan.textContent = 'No file chosen';
+                    }
+                });
+
+            } catch (err) {
+                errorP.textContent = `An error occurred: ${err.message}`;
+                statusP.textContent = '';
+                convertBtn.disabled = false;
+                videoFile.disabled = false;
+                fpsInput.disabled = false;
+                qualityInput.disabled = false;
+                maxWidthInput.disabled = false;
+                 if (videoObjectURL) {
+                    URL.revokeObjectURL(videoObjectURL);
+                    videoObjectURL = null;
+                    videoPlayer.src = '';
+                    videoPreview.src = '';
+                    videoPreview.style.display = 'none';
+                    fileNameSpan.textContent = 'No file chosen';
+                }
+            }
+        });
+    </script>
+</body>
+</html>
