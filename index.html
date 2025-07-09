@@ -108,7 +108,7 @@
             font-weight: bold;
             color: #444;
         }
-        .settings input[type="number"] {
+        .settings input[type="number"], .settings input[type="range"] { /* Added range type */
             width: calc(100% - 20px);
             padding: 8px 10px;
             margin-bottom: 10px;
@@ -121,6 +121,48 @@
             color: #777;
             margin-top: 10px;
             line-height: 1.4;
+        }
+
+        /* New styles for Advanced Settings */
+        .advanced-toggle {
+            cursor: pointer;
+            font-weight: bold;
+            color: #007bff;
+            margin-top: 20px;
+            padding-bottom: 5px;
+            border-bottom: 1px dashed #007bff;
+            display: inline-block; /* To make border-bottom apply correctly */
+        }
+        .advanced-toggle:hover {
+            text-decoration: underline;
+        }
+        .advanced-content {
+            display: none; /* Hidden by default */
+            margin-top: 15px;
+            padding: 10px;
+            border: 1px dashed #ccc;
+            border-radius: 5px;
+            background-color: #f0f8ff; /* Light blue background for distinction */
+        }
+        .advanced-content .setting-group {
+            margin-bottom: 15px;
+        }
+        .advanced-content .setting-group:last-child {
+            margin-bottom: 0;
+        }
+        .slider-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .slider-group input[type="range"] {
+            flex-grow: 1; /* Allow slider to take available width */
+            margin-bottom: 0; /* Remove default margin */
+        }
+        .slider-group span {
+            min-width: 30px; /* Ensure space for value display */
+            text-align: right;
+            font-weight: normal;
         }
     </style>
 </head>
@@ -138,16 +180,32 @@
         <video id="videoPreview" controls></video>
 
         <div class="settings">
-            <label for="fpsInput">Frames Per Second (FPS):</label>
-            <input type="number" id="fpsInput" value="10" min="1" max="30">
-            <label for="qualityInput">Quality (1-30, lower is better but larger file):</label>
-            <input type="number" id="qualityInput" value="10" min="1" max="30">
-            <label for="maxWidthInput">Max Width (pixels, 0 for original):</label>
-            <input type="number" id="maxWidthInput" value="480" min="0">
+            <!-- Quality Slider -->
+            <label for="qualityInput">Quality (1-30, lower is better but larger file): <span id="qualityValue">10</span></label>
+            <div class="slider-group">
+                <input type="range" id="qualityInput" value="10" min="1" max="30">
+            </div>
+            <p class="info-note">A lower number (e.g., 1-5) means better quality (more colors) but a larger file size. A higher number (e.g., 20-30) means lower quality (fewer colors) but a smaller file size.</p>
+
+            <!-- Advanced Settings Toggle -->
+            <div class="advanced-toggle" id="advancedToggle">
+                Advanced Settings <span id="toggleArrow">▼</span>
+            </div>
+            <!-- Advanced Settings Content (initially hidden) -->
+            <div class="advanced-content" id="advancedContent">
+                <div class="setting-group">
+                    <label for="fpsInput">Frames Per Second (FPS):</label>
+                    <input type="number" id="fpsInput" value="10" min="1" max="30">
+                    <p class="info-note">Higher FPS means smoother animation but larger file size.</p>
+                </div>
+                <div class="setting-group">
+                    <label for="maxWidthInput">Max Width (pixels, 0 for original):</label>
+                    <input type="number" id="maxWidthInput" value="480" min="0">
+                    <p class="info-note">Sets the maximum width of the GIF. Video will be scaled proportionally. Use `0` for original video width.</p>
+                </div>
+            </div>
+
             <div class="info-note">
-                <p><strong>FPS:</strong> Higher FPS means smoother animation but larger file size.</p>
-                <p><strong>Quality:</strong> A lower number (e.g., 1-5) means better quality (more colors) but a larger file size. A higher number (e.g., 20-30) means lower quality (fewer colors) but a smaller file size.</p>
-                <p><strong>Max Width:</strong> Sets the maximum width of the GIF. Video will be scaled proportionally. Use `0` for original video width.</p>
                 <p><strong>Important:</strong> Conversion happens in your browser. Large videos or high quality settings may take a long time or cause browser issues.</p>
             </div>
         </div>
@@ -180,11 +238,19 @@
         const videoCanvas = document.getElementById('videoCanvas'); // Hidden canvas for drawing frames
         const ctx = videoCanvas.getContext('2d');
 
+        // Settings inputs
         const fpsInput = document.getElementById('fpsInput');
         const qualityInput = document.getElementById('qualityInput');
+        const qualityValueSpan = document.getElementById('qualityValue'); // For displaying quality slider value
         const maxWidthInput = document.getElementById('maxWidthInput');
 
+        // Advanced settings elements
+        const advancedToggle = document.getElementById('advancedToggle');
+        const advancedContent = document.getElementById('advancedContent');
+        const toggleArrow = document.getElementById('toggleArrow');
+
         let videoObjectURL = null; // To store the URL created for the selected video file
+        let originalFileName = ''; // To store the original file name for GIF naming
 
         // --- Helper Function for UI Reset ---
         // This function fully resets the UI state, as if no file was selected yet.
@@ -195,11 +261,16 @@
             fpsInput.disabled = false;
             qualityInput.disabled = false;
             maxWidthInput.disabled = false;
+            advancedToggle.style.pointerEvents = 'auto'; // Re-enable toggle
             statusP.textContent = '';
             errorP.textContent = '';
             gifDownloadLink.style.display = 'none';
             gifDownloadLink.removeAttribute('href');
             gifDownloadLink.textContent = 'Download GIF'; // Reset text just in case
+
+            // Reset quality slider value display
+            qualityValueSpan.textContent = qualityInput.value;
+
 
             if (videoObjectURL) {
                 URL.revokeObjectURL(videoObjectURL); // Clean up previous object URL to free memory
@@ -209,6 +280,17 @@
             videoPreview.src = ''; // Clear source for preview player
             videoPreview.style.display = 'none'; // Hide video preview
             fileNameSpan.textContent = 'No file chosen'; // Reset file name display
+            originalFileName = ''; // Clear original file name
+        }
+
+        // --- Helper Function for Random String ---
+        function generateRandomString(length) {
+            const characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
+            let result = '';
+            for (let i = 0; i < length; i++) {
+                result += characters.charAt(Math.floor(Math.random() * characters.length));
+            }
+            return result;
         }
 
         // --- Event Listeners ---
@@ -222,6 +304,7 @@
             if (file) {
                 if (file.type.startsWith('video/')) {
                     fileNameSpan.textContent = file.name;
+                    originalFileName = file.name; // Store original file name
                     videoObjectURL = URL.createObjectURL(file);
                     videoPreview.src = videoObjectURL;
                     videoPlayer.src = videoObjectURL; // Load into the hidden player for processing
@@ -239,6 +322,19 @@
             }
         });
 
+        // Update quality slider value display
+        qualityInput.addEventListener('input', () => {
+            qualityValueSpan.textContent = qualityInput.value;
+        });
+
+        // Toggle advanced settings visibility
+        advancedToggle.addEventListener('click', () => {
+            const isHidden = advancedContent.style.display === 'none' || advancedContent.style.display === '';
+            advancedContent.style.display = isHidden ? 'block' : 'none';
+            toggleArrow.textContent = isHidden ? '▲' : '▼'; // Change arrow direction
+        });
+
+
         convertBtn.addEventListener('click', async () => {
             if (!videoPlayer.src) {
                 errorP.textContent = 'Please select a video first.';
@@ -254,13 +350,13 @@
             fpsInput.disabled = true; // Disable settings during conversion
             qualityInput.disabled = true;
             maxWidthInput.disabled = true;
+            advancedToggle.style.pointerEvents = 'none'; // Disable toggle during conversion
 
             try {
                 // --- Step 1: Ensure Video Metadata is Loaded ---
                 console.log('Attempting to load video metadata...'); // Debug
                 await new Promise((resolve, reject) => {
-                    // If metadata is already loaded (readyState > 0 means HAVE_NOTHING, 1=HAVE_METADATA, etc.)
-                    if (videoPlayer.readyState >= 1) {
+                    if (videoPlayer.readyState >= 1) { // readyState > 0 means HAVE_NOTHING, 1=HAVE_METADATA, etc.
                         console.log('Video metadata already loaded (readyState:', videoPlayer.readyState, ').'); // Debug
                         resolve();
                         return;
@@ -373,22 +469,21 @@
                     });
 
                     currentTime += (1 / desiredFPS);
-                    // Use setTimeout with the calculated delay to ensure correct FPS
-                    // This creates a small delay before requesting the next frame, stabilizing FPS.
+                    // Use setTimeout with the calculated delay to ensure correct FPS,
+                    // or more accurately, to delay the *next* `requestVideoFrameCallback` call.
                     setTimeout(() => requestAnimationFrame(captureFrame), frameDelay);
                 };
 
                 // Ensure video is seeked to the beginning before starting frame capture
                 await new Promise(resolve => {
-                    // Define the handler as a named function for proper removal
                     const onSeekedHandler = () => {
                         console.log('Video seeked to 0s, starting frame capture.'); // Debug
-                        videoPlayer.removeEventListener('seeked', onSeekedHandler); // Use the name here
+                        videoPlayer.removeEventListener('seeked', onSeekedHandler);
                         requestAnimationFrame(captureFrame); // Start the loop
                         resolve();
                     };
 
-                    videoPlayer.addEventListener('seeked', onSeekedHandler); // Add listener using the name
+                    videoPlayer.addEventListener('seeked', onSeekedHandler);
                     videoPlayer.currentTime = 0; // Trigger the seek
                 });
 
@@ -400,20 +495,29 @@
 
                 gif.on('finished', (blob) => {
                     console.log('GIF encoding finished.'); // Debug
+
+                    // Generate a unique filename using random prefix + original name
+                    const randomPrefix = generateRandomString(4);
+                    // Get base name without extension, handle cases where there's no dot
+                    let baseName = originalFileName.substring(0, originalFileName.lastIndexOf('.')) || originalFileName;
+                    const gifFileName = `${randomPrefix}_${baseName}.gif`;
+
+
                     const gifURL = URL.createObjectURL(blob);
                     gifDownloadLink.href = gifURL;
-                    gifDownloadLink.download = 'converted.gif';
-                    gifDownloadLink.textContent = 'Download Converted GIF';
+                    gifDownloadLink.download = gifFileName; // Set the new generated filename
+                    gifDownloadLink.textContent = `Download Converted GIF (${gifFileName})`; // Update text to show new name
                     gifDownloadLink.style.display = 'block'; // Make the download link visible
 
                     statusP.textContent = 'Conversion Complete! (Click "Download Converted GIF")'; // More descriptive status
 
-                    // Re-enable input fields and convert button (moved from resetUI for this specific case)
+                    // Re-enable input fields and convert button
                     convertBtn.disabled = false;
                     videoFile.disabled = false;
                     fpsInput.disabled = false;
                     qualityInput.disabled = false;
                     maxWidthInput.disabled = false;
+                    advancedToggle.style.pointerEvents = 'auto'; // Re-enable toggle
 
                     // IMPORTANT: Clean up the videoObjectURL (source video) to free memory.
                     // This is done here now, instead of implicitly via resetUI() when conversion is successful.
@@ -424,6 +528,7 @@
                         videoPreview.src = ''; // Clear source for preview player
                         videoPreview.style.display = 'none'; // Hide video preview
                         fileNameSpan.textContent = 'No file chosen'; // Reset file name display
+                        originalFileName = ''; // Clear original file name
                     }
 
                     console.log('GIF conversion complete. Download link created and source video resources cleaned up.'); // Debug
