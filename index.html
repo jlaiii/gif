@@ -187,6 +187,8 @@
         let videoObjectURL = null; // To store the URL created for the selected video file
 
         // --- Helper Function for UI Reset ---
+        // This function fully resets the UI state, as if no file was selected yet.
+        // It's called on initial load, when a new file is chosen, or on error.
         function resetUI() {
             convertBtn.disabled = true;
             videoFile.disabled = false;
@@ -197,16 +199,16 @@
             errorP.textContent = '';
             gifDownloadLink.style.display = 'none';
             gifDownloadLink.removeAttribute('href');
-            gifDownloadLink.textContent = 'Download GIF';
+            gifDownloadLink.textContent = 'Download GIF'; // Reset text just in case
 
             if (videoObjectURL) {
                 URL.revokeObjectURL(videoObjectURL); // Clean up previous object URL to free memory
                 videoObjectURL = null;
             }
-            videoPlayer.src = '';
-            videoPreview.src = '';
-            videoPreview.style.display = 'none';
-            fileNameSpan.textContent = 'No file chosen';
+            videoPlayer.src = ''; // Clear source for hidden player
+            videoPreview.src = ''; // Clear source for preview player
+            videoPreview.style.display = 'none'; // Hide video preview
+            fileNameSpan.textContent = 'No file chosen'; // Reset file name display
         }
 
         // --- Event Listeners ---
@@ -215,7 +217,7 @@
             const file = event.target.files[0];
             console.log('File selected:', file); // Debug: Log selected file
 
-            resetUI(); // Reset UI on new file selection
+            resetUI(); // Fully reset UI on new file selection
 
             if (file) {
                 if (file.type.startsWith('video/')) {
@@ -223,8 +225,8 @@
                     videoObjectURL = URL.createObjectURL(file);
                     videoPreview.src = videoObjectURL;
                     videoPlayer.src = videoObjectURL; // Load into the hidden player for processing
-                    videoPreview.style.display = 'block';
-                    convertBtn.disabled = false;
+                    videoPreview.style.display = 'block'; // Show video preview
+                    convertBtn.disabled = false; // Enable convert button
                     console.log('Video successfully loaded for preview and processing.'); // Debug
                 } else {
                     fileNameSpan.textContent = 'Please select a video file.';
@@ -246,10 +248,10 @@
 
             statusP.textContent = 'Loading video metadata...';
             errorP.textContent = '';
-            gifDownloadLink.style.display = 'none';
+            gifDownloadLink.style.display = 'none'; // Hide download link during conversion
             convertBtn.disabled = true; // Disable button to prevent multiple clicks
             videoFile.disabled = true; // Disable file input during conversion
-            fpsInput.disabled = true;
+            fpsInput.disabled = true; // Disable settings during conversion
             qualityInput.disabled = true;
             maxWidthInput.disabled = true;
 
@@ -402,28 +404,47 @@
                     gifDownloadLink.href = gifURL;
                     gifDownloadLink.download = 'converted.gif';
                     gifDownloadLink.textContent = 'Download Converted GIF';
-                    gifDownloadLink.style.display = 'block';
-                    statusP.textContent = 'Conversion Complete!';
-                    resetUI(); // Reset UI and clean up URLs
-                    console.log('GIF conversion complete. Download link created.'); // Debug
+                    gifDownloadLink.style.display = 'block'; // Make the download link visible
+
+                    statusP.textContent = 'Conversion Complete! (Click "Download Converted GIF")'; // More descriptive status
+
+                    // Re-enable input fields and convert button (moved from resetUI for this specific case)
+                    convertBtn.disabled = false;
+                    videoFile.disabled = false;
+                    fpsInput.disabled = false;
+                    qualityInput.disabled = false;
+                    maxWidthInput.disabled = false;
+
+                    // IMPORTANT: Clean up the videoObjectURL (source video) to free memory.
+                    // This is done here now, instead of implicitly via resetUI() when conversion is successful.
+                    if (videoObjectURL) {
+                        URL.revokeObjectURL(videoObjectURL);
+                        videoObjectURL = null;
+                        videoPlayer.src = ''; // Clear source for hidden player
+                        videoPreview.src = ''; // Clear source for preview player
+                        videoPreview.style.display = 'none'; // Hide video preview
+                        fileNameSpan.textContent = 'No file chosen'; // Reset file name display
+                    }
+
+                    console.log('GIF conversion complete. Download link created and source video resources cleaned up.'); // Debug
                 });
 
                 gif.on('error', (err) => {
                     console.error('GIF.js Error:', err); // Debug: Log the error object
                     errorP.textContent = `GIF Conversion Error: ${err.message || err}. Check console for details.`;
                     statusP.textContent = '';
-                    resetUI(); // Reset UI and clean up URLs
+                    resetUI(); // Full UI reset on error, including hiding download link
                 });
 
             } catch (err) {
                 console.error('Main conversion process error:', err); // Debug: Log errors from the main async function
                 errorP.textContent = `An error occurred: ${err.message || err}. Check console for more details.`;
                 statusP.textContent = '';
-                resetUI(); // Reset UI and clean up URLs
+                resetUI(); // Full UI reset on error, including hiding download link
             }
         });
 
-        // Initial UI setup
+        // Initial UI setup when the page loads
         resetUI();
     </script>
 </body>
