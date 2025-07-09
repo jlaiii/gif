@@ -108,8 +108,11 @@
             font-weight: bold;
             color: #444;
         }
-        .settings input[type="number"], .settings input[type="range"] { /* Added range type */
-            width: calc(100% - 20px);
+        /* Styling for number and range inputs - adjusting width and padding */
+        .settings input[type="number"],
+        .settings input[type="range"],
+        .settings select { /* Added select */
+            width: calc(100% - 20px); /* Full width minus padding */
             padding: 8px 10px;
             margin-bottom: 10px;
             border: 1px solid #ccc;
@@ -123,7 +126,7 @@
             line-height: 1.4;
         }
 
-        /* New styles for Advanced Settings */
+        /* Styles for Advanced Settings */
         .advanced-toggle {
             cursor: pointer;
             font-weight: bold;
@@ -131,7 +134,7 @@
             margin-top: 20px;
             padding-bottom: 5px;
             border-bottom: 1px dashed #007bff;
-            display: inline-block; /* To make border-bottom apply correctly */
+            display: inline-block;
         }
         .advanced-toggle:hover {
             text-decoration: underline;
@@ -142,7 +145,7 @@
             padding: 10px;
             border: 1px dashed #ccc;
             border-radius: 5px;
-            background-color: #f0f8ff; /* Light blue background for distinction */
+            background-color: #f0f8ff;
         }
         .advanced-content .setting-group {
             margin-bottom: 15px;
@@ -156,35 +159,17 @@
             gap: 10px;
         }
         .slider-group input[type="range"] {
-            flex-grow: 1; /* Allow slider to take available width */
-            margin-bottom: 0; /* Remove default margin */
+            flex-grow: 1;
+            margin-bottom: 0;
         }
         .slider-group span {
-            min-width: 30px; /* Ensure space for value display */
+            min-width: 30px;
             text-align: right;
             font-weight: normal;
         }
-        /* Style for the optimization tips */
-        .optimization-tips {
-            background-color: #fff3cd; /* Light warning yellow */
-            border-left: 5px solid #ffc107; /* Orange border */
-            padding: 15px;
-            margin-top: 20px;
-            border-radius: 5px;
-            font-size: 0.95em;
-            color: #664d03; /* Darker yellow text */
-            text-align: left;
-        }
-        .optimization-tips h4 {
-            margin-top: 0;
-            color: #664d03;
-        }
-        .optimization-tips ul {
-            padding-left: 20px;
-            margin-bottom: 0;
-        }
-        .optimization-tips li {
-            margin-bottom: 8px;
+        /* Specific style for custom max width input */
+        #customMaxWidthInput {
+            margin-top: 5px; /* Small separation from dropdown */
         }
     </style>
 </head>
@@ -216,25 +201,25 @@
             <!-- Advanced Settings Content (initially hidden) -->
             <div class="advanced-content" id="advancedContent">
                 <div class="setting-group">
-                    <label for="fpsInput">Frames Per Second (FPS):</label>
-                    <input type="number" id="fpsInput" value="10" min="1" max="30">
+                    <label for="fpsInput">Frames Per Second (FPS): <span id="fpsValue">8</span></label>
+                    <div class="slider-group">
+                        <input type="range" id="fpsInput" value="8" min="1" max="30">
+                    </div>
                     <p class="info-note">Higher FPS means smoother animation but larger file size.</p>
                 </div>
                 <div class="setting-group">
-                    <label for="maxWidthInput">Max Width (pixels, 0 for original):</label>
-                    <input type="number" id="maxWidthInput" value="480" min="0">
-                    <p class="info-note">Sets the maximum width of the GIF. Video will be scaled proportionally. Use `0` for original video width.</p>
+                    <label for="maxWidthPreset">Max Width (pixels):</label>
+                    <select id="maxWidthPreset">
+                        <option value="0">Original Width</option>
+                        <option value="240">Small (240px)</option>
+                        <option value="320">Medium (320px)</option>
+                        <option value="480" selected>Large (480px)</option>
+                        <option value="640">X-Large (640px)</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                    <input type="number" id="customMaxWidthInput" value="480" min="0" placeholder="Enter custom width" style="display: none;">
+                    <p class="info-note">Sets the maximum width of the GIF. Video will be scaled proportionally. Use 'Original Width' for the video's original width, or 'Custom' to enter a specific value.</p>
                 </div>
-            </div>
-
-            <div class="optimization-tips">
-                <h4>💡 Tips for Smaller GIF Files:</h4>
-                <ul>
-                    <li>GIFs are inherently large for video content due to their limitations.</li>
-                    <li>**Reduce FPS:** This is usually the most effective. Try values like **5-10 FPS**.</li>
-                    <li>**Reduce Max Width:** Smaller dimensions mean much smaller file size. Try **320px** or even lower.</li>
-                    <li>**Increase Quality Slider:** Move the slider closer to **30**. This reduces the number of colors in the GIF, making the file smaller (at the cost of visual fidelity).</li>
-                </ul>
             </div>
 
             <div class="info-note">
@@ -272,9 +257,13 @@
 
         // Settings inputs
         const fpsInput = document.getElementById('fpsInput');
+        const fpsValueSpan = document.getElementById('fpsValue'); // For displaying FPS slider value
         const qualityInput = document.getElementById('qualityInput');
         const qualityValueSpan = document.getElementById('qualityValue'); // For displaying quality slider value
-        const maxWidthInput = document.getElementById('maxWidthInput');
+        
+        // Max Width elements
+        const maxWidthPreset = document.getElementById('maxWidthPreset'); // Dropdown
+        const customMaxWidthInput = document.getElementById('customMaxWidthInput'); // Custom number input
 
         // Advanced settings elements
         const advancedToggle = document.getElementById('advancedToggle');
@@ -290,19 +279,30 @@
         function resetUI() {
             convertBtn.disabled = true;
             videoFile.disabled = false;
+            
+            // Re-enable all settings and advanced toggle
             fpsInput.disabled = false;
             qualityInput.disabled = false;
-            maxWidthInput.disabled = false;
-            advancedToggle.style.pointerEvents = 'auto'; // Re-enable toggle
+            maxWidthPreset.disabled = false; 
+            advancedToggle.style.pointerEvents = 'auto'; 
+
+            // Hide and disable custom maxWidth input by default
+            customMaxWidthInput.disabled = true; 
+            customMaxWidthInput.style.display = 'none'; 
+
             statusP.textContent = '';
             errorP.textContent = '';
             gifDownloadLink.style.display = 'none';
             gifDownloadLink.removeAttribute('href');
-            gifDownloadLink.textContent = 'Download GIF'; // Reset text just in case
+            gifDownloadLink.textContent = 'Download GIF'; 
 
-            // Reset quality slider value display
+            // Reset slider value displays and input values
+            fpsInput.value = "8"; // Default FPS
+            fpsValueSpan.textContent = fpsInput.value;
+            qualityInput.value = "10"; // Default Quality
             qualityValueSpan.textContent = qualityInput.value;
-
+            maxWidthPreset.value = "480"; // Default Max Width preset
+            customMaxWidthInput.value = "480"; // Default custom value (even if hidden)
 
             if (videoObjectURL) {
                 URL.revokeObjectURL(videoObjectURL); // Clean up previous object URL to free memory
@@ -354,9 +354,26 @@
             }
         });
 
+        // Update FPS slider value display
+        fpsInput.addEventListener('input', () => {
+            fpsValueSpan.textContent = fpsInput.value;
+        });
+
         // Update quality slider value display
         qualityInput.addEventListener('input', () => {
             qualityValueSpan.textContent = qualityInput.value;
+        });
+
+        // Handle Max Width preset changes
+        maxWidthPreset.addEventListener('change', () => {
+            if (maxWidthPreset.value === 'custom') {
+                customMaxWidthInput.style.display = 'block';
+                customMaxWidthInput.disabled = false;
+                customMaxWidthInput.focus(); // Focus on the custom input for immediate input
+            } else {
+                customMaxWidthInput.style.display = 'none';
+                customMaxWidthInput.disabled = true;
+            }
         });
 
         // Toggle advanced settings visibility
@@ -379,10 +396,14 @@
             gifDownloadLink.style.display = 'none'; // Hide download link during conversion
             convertBtn.disabled = true; // Disable button to prevent multiple clicks
             videoFile.disabled = true; // Disable file input during conversion
-            fpsInput.disabled = true; // Disable settings during conversion
+
+            // Disable all settings during conversion
+            fpsInput.disabled = true;
             qualityInput.disabled = true;
-            maxWidthInput.disabled = true;
+            maxWidthPreset.disabled = true;
+            customMaxWidthInput.disabled = true; // Also disable custom input if visible
             advancedToggle.style.pointerEvents = 'none'; // Disable toggle during conversion
+
 
             try {
                 // --- Step 1: Ensure Video Metadata is Loaded ---
@@ -422,7 +443,16 @@
                 // --- Step 2: Validate User Inputs ---
                 const desiredFPS = parseInt(fpsInput.value);
                 const quality = parseInt(qualityInput.value);
-                let maxWidth = parseInt(maxWidthInput.value);
+                
+                let maxWidth;
+                const selectedPreset = maxWidthPreset.value;
+
+                if (selectedPreset === 'custom') {
+                    maxWidth = parseInt(customMaxWidthInput.value);
+                } else {
+                    maxWidth = parseInt(selectedPreset);
+                }
+
 
                 if (isNaN(desiredFPS) || desiredFPS < 1 || desiredFPS > 30) {
                     throw new Error("Invalid FPS. Please enter a number between 1 and 30.");
@@ -548,7 +578,11 @@
                     videoFile.disabled = false;
                     fpsInput.disabled = false;
                     qualityInput.disabled = false;
-                    maxWidthInput.disabled = false;
+                    maxWidthPreset.disabled = false;
+                    // Only re-enable custom input if it was selected BEFORE conversion
+                    if (maxWidthPreset.value === 'custom') {
+                        customMaxWidthInput.disabled = false;
+                    }
                     advancedToggle.style.pointerEvents = 'auto'; // Re-enable toggle
 
                     // IMPORTANT: Clean up the videoObjectURL (source video) to free memory.
