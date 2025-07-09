@@ -164,6 +164,28 @@
             text-align: right;
             font-weight: normal;
         }
+        /* Style for the optimization tips */
+        .optimization-tips {
+            background-color: #fff3cd; /* Light warning yellow */
+            border-left: 5px solid #ffc107; /* Orange border */
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 5px;
+            font-size: 0.95em;
+            color: #664d03; /* Darker yellow text */
+            text-align: left;
+        }
+        .optimization-tips h4 {
+            margin-top: 0;
+            color: #664d03;
+        }
+        .optimization-tips ul {
+            padding-left: 20px;
+            margin-bottom: 0;
+        }
+        .optimization-tips li {
+            margin-bottom: 8px;
+        }
     </style>
 </head>
 <body>
@@ -181,11 +203,11 @@
 
         <div class="settings">
             <!-- Quality Slider -->
-            <label for="qualityInput">Quality (1-30, lower is better but larger file): <span id="qualityValue">10</span></label>
+            <label for="qualityInput">Quality (1-30): <span id="qualityValue">10</span></label>
             <div class="slider-group">
                 <input type="range" id="qualityInput" value="10" min="1" max="30">
             </div>
-            <p class="info-note">A lower number (e.g., 1-5) means better quality (more colors) but a larger file size. A higher number (e.g., 20-30) means lower quality (fewer colors) but a smaller file size.</p>
+            <p class="info-note">A lower number (e.g., 1-5) results in more colors and better visual detail, but a larger file size. A higher number (e.g., 20-30) means fewer colors and lower visual detail, but a smaller file size.</p>
 
             <!-- Advanced Settings Toggle -->
             <div class="advanced-toggle" id="advancedToggle">
@@ -203,6 +225,16 @@
                     <input type="number" id="maxWidthInput" value="480" min="0">
                     <p class="info-note">Sets the maximum width of the GIF. Video will be scaled proportionally. Use `0` for original video width.</p>
                 </div>
+            </div>
+
+            <div class="optimization-tips">
+                <h4>💡 Tips for Smaller GIF Files:</h4>
+                <ul>
+                    <li>GIFs are inherently large for video content due to their limitations.</li>
+                    <li>**Reduce FPS:** This is usually the most effective. Try values like **5-10 FPS**.</li>
+                    <li>**Reduce Max Width:** Smaller dimensions mean much smaller file size. Try **320px** or even lower.</li>
+                    <li>**Increase Quality Slider:** Move the slider closer to **30**. This reduces the number of colors in the GIF, making the file smaller (at the cost of visual fidelity).</li>
+                </ul>
             </div>
 
             <div class="info-note">
