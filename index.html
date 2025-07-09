@@ -372,17 +372,21 @@
 
                     currentTime += (1 / desiredFPS);
                     // Use setTimeout with the calculated delay to ensure correct FPS
+                    // This creates a small delay before requesting the next frame, stabilizing FPS.
                     setTimeout(() => requestAnimationFrame(captureFrame), frameDelay);
                 };
 
                 // Ensure video is seeked to the beginning before starting frame capture
                 await new Promise(resolve => {
-                    videoPlayer.onseeked = () => {
+                    // Define the handler as a named function for proper removal
+                    const onSeekedHandler = () => {
                         console.log('Video seeked to 0s, starting frame capture.'); // Debug
-                        videoPlayer.removeEventListener('seeked', arguments.callee); // Remove listener after first seek
+                        videoPlayer.removeEventListener('seeked', onSeekedHandler); // Use the name here
                         requestAnimationFrame(captureFrame); // Start the loop
                         resolve();
                     };
+
+                    videoPlayer.addEventListener('seeked', onSeekedHandler); // Add listener using the name
                     videoPlayer.currentTime = 0; // Trigger the seek
                 });
 
