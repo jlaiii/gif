@@ -76,6 +76,10 @@
             color: var(--text-light);
         }
 
+        #openSettingsBtn {
+            margin-top: 25px;
+        }
+
         /* --- Processing State --- */
         #processingState h2 {
             margin-top: 0;
@@ -179,23 +183,6 @@
         }
         
         /* --- Settings Modal --- */
-        #settingsBtn {
-            position: absolute;
-            /* CHANGE: Adjusted position to fit neatly in the top-right corner of the card */
-            top: 15px;
-            right: 15px;
-            background: none;
-            border: none;
-            font-size: 28px;
-            cursor: pointer;
-            color: var(--text-light);
-            transition: color 0.3s ease, transform 0.3s ease;
-            z-index: 1001;
-        }
-        #settingsBtn:hover {
-            color: var(--primary-accent);
-            transform: rotate(45deg);
-        }
         #settingsModal {
             position: fixed;
             top: 0;
@@ -265,8 +252,6 @@
 </head>
 <body>
     <div class="main-container">
-        <!-- Settings Button -->
-        <button id="settingsBtn" title="Settings">⚙️</button>
 
         <!-- STATE 1: Initial Drop Zone -->
         <div id="initialState" class="ui-state">
@@ -277,6 +262,9 @@
                 <p>or <a>click here</a> to select a file</p>
                 <p class="info-note" style="margin-top: 15px;">Converts MP4, WebM, etc. to GIF right in your browser.</p>
             </div>
+            
+            <button id="openSettingsBtn" class="btn btn-secondary">Settings</button>
+
             <p id="initialError" class="error-message"></p>
         </div>
 
@@ -318,7 +306,6 @@
         <div class="settings-content">
             <h2>Conversion Settings</h2>
             
-            <!-- CHANGE: Quality slider made more user-friendly -->
             <div class="setting-group">
                 <label for="qualityInput">Quality: <span id="qualityValue">75</span>%</label>
                 <div class="slider-group">
@@ -328,9 +315,10 @@
             </div>
             
             <div class="setting-group">
-                <label for="fpsInput">Frames Per Second (FPS): <span id="fpsValue">10</span></label>
+                <label for="fpsInput">Frames Per Second (FPS): <span id="fpsValue">15</span></label>
                 <div class="slider-group">
-                    <input type="range" id="fpsInput" value="10" min="1" max="30">
+                    <!-- CHANGE: Default FPS is now 15 -->
+                    <input type="range" id="fpsInput" value="15" min="1" max="30">
                 </div>
                 <p class="info-note">Higher FPS = smoother animation & bigger file size.</p>
             </div>
@@ -386,7 +374,7 @@
             const ctx = videoCanvas.getContext('2d');
             
             // --- Settings Elements ---
-            const settingsBtn = document.getElementById('settingsBtn');
+            const openSettingsBtn = document.getElementById('openSettingsBtn');
             const settingsModal = document.getElementById('settingsModal');
             const closeSettingsBtn = document.getElementById('closeSettingsBtn');
             const qualityInput = document.getElementById('qualityInput');
@@ -409,7 +397,7 @@
             function resetUI() {
                 showState('initialState');
                 initialError.textContent = '';
-                videoFile.value = ''; // Clear file input
+                videoFile.value = '';
                 if (videoObjectURL) {
                     URL.revokeObjectURL(videoObjectURL);
                     videoObjectURL = null;
@@ -418,7 +406,6 @@
                 gifPreview.src = '';
                 URL.revokeObjectURL(gifDownloadLink.href);
                 gifDownloadLink.removeAttribute('href');
-                settingsBtn.style.display = 'block';
             }
 
             // --- Helper Functions ---
@@ -437,7 +424,6 @@
                 return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
             };
 
-            // CHANGE: Function to initialize and update settings display text
             function updateSettingsDisplay() {
                 qualityValueSpan.textContent = qualityInput.value;
                 fpsValueSpan.textContent = fpsInput.value;
@@ -445,30 +431,39 @@
 
             // --- Event Listeners ---
             
-            // Drag and Drop
+            // Allow clicking the dropzone to open file dialog
             dropZone.addEventListener('click', () => videoFile.click());
-            dropZone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                dropZone.classList.add('drag-over');
+            
+            // CHANGE: Global drag and drop listeners on the whole document
+            document.addEventListener('dragover', (e) => {
+                e.preventDefault(); // This is crucial to allow dropping
+                if (!initialState.classList.contains('hidden')) {
+                    dropZone.classList.add('drag-over');
+                }
             });
-            dropZone.addEventListener('dragleave', () => {
+
+            document.addEventListener('dragleave', () => {
                 dropZone.classList.remove('drag-over');
             });
-            dropZone.addEventListener('drop', (e) => {
+
+            document.addEventListener('drop', (e) => {
                 e.preventDefault();
-                dropZone.classList.remove('drag-over');
-                const file = e.dataTransfer.files[0];
-                handleFile(file);
+                // Only process the drop if we are on the initial screen
+                if (!initialState.classList.contains('hidden')) {
+                    dropZone.classList.remove('drag-over');
+                    const file = e.dataTransfer.files[0];
+                    handleFile(file);
+                }
             });
             
-            // File Input Change
+            // File Input Change (for when user clicks to select)
             videoFile.addEventListener('change', (e) => {
                 const file = e.target.files[0];
                 handleFile(file);
             });
 
             // Settings Modal
-            settingsBtn.addEventListener('click', () => settingsModal.classList.add('visible'));
+            openSettingsBtn.addEventListener('click', () => settingsModal.classList.add('visible'));
             closeSettingsBtn.addEventListener('click', () => settingsModal.classList.remove('visible'));
             settingsModal.addEventListener('click', (e) => {
                 if (e.target === settingsModal) {
@@ -507,14 +502,12 @@
 
             async function startConversion(videoSrc, originalFileName) {
                 showState('processingState');
-                settingsBtn.style.display = 'none'; // Hide settings during conversion
                 
                 let conversionStartTime;
 
                 try {
                     videoPlayer.src = videoSrc;
                     
-                    // 1. Load Video Metadata
                     await new Promise((resolve, reject) => {
                         videoPlayer.addEventListener('loadedmetadata', resolve, { once: true });
                         videoPlayer.addEventListener('error', (e) => reject(new Error('Failed to load video metadata.')), { once: true });
@@ -524,16 +517,11 @@
                     const videoWidth = videoPlayer.videoWidth;
                     const videoHeight = videoPlayer.videoHeight;
 
-                    // 2. Get Settings
                     const desiredFPS = parseInt(fpsInput.value);
                     let maxWidth = (maxWidthPreset.value === 'custom') ? parseInt(customMaxWidthInput.value) : parseInt(maxWidthPreset.value);
-
-                    // CHANGE: Translate user-friendly 1-100 quality to gif.js's inverted 1-30 scale
-                    // 100% quality = 1 for gif.js, 1% quality = ~30 for gif.js
                     const userQuality = parseInt(qualityInput.value);
                     const quality = Math.round(31 - (userQuality / 100 * 30));
 
-                    // 3. Calculate Dimensions
                     let outputWidth = videoWidth;
                     let outputHeight = videoHeight;
                     if (maxWidth > 0 && videoWidth > maxWidth) {
@@ -548,10 +536,9 @@
                     const frameDelay = 1000 / desiredFPS;
                     const totalFrames = Math.floor(duration * desiredFPS);
 
-                    // 4. Initialize GIF.js
                     const gif = new GIF({
                         workers: 2,
-                        quality: quality, // Use the translated quality value
+                        quality: quality,
                         workerScript: 'gif.worker.js',
                         width: outputWidth,
                         height: outputHeight,
@@ -574,11 +561,8 @@
                         showState('completedState');
                     });
                     
-                    gif.on('progress', (p) => {
-                        // The frame capture progress is more intuitive, so we can ignore this one.
-                    });
+                    gif.on('progress', (p) => { /* Ignored for now */ });
 
-                    // 5. Capture Frames
                     conversionStartTime = Date.now();
                     videoPlayer.currentTime = 0;
 
@@ -588,12 +572,10 @@
                             return;
                         }
                         
-                        // Draw frame and add to GIF
                         ctx.drawImage(videoPlayer, 0, 0, outputWidth, outputHeight);
                         gif.addFrame(videoCanvas, { delay: frameDelay, copy: true });
                         processedFrames++;
                         
-                        // Update UI
                         const progress = Math.min(100, (processedFrames / totalFrames) * 100);
                         progressBar.style.width = `${progress}%`;
                         progressText.textContent = `Processing frame ${processedFrames} of ~${totalFrames}`;
@@ -604,7 +586,6 @@
 
                         timeStats.innerHTML = `<span>Time Elapsed: ${formatTime(elapsedTime)}</span> | <span>Est. Remaining: ${processedFrames > 5 ? formatTime(estimatedRemainingTime) : 'calculating...'}</span>`;
 
-                        // Seek to next frame
                         videoPlayer.currentTime = Math.min(duration, videoPlayer.currentTime + (1 / desiredFPS));
                         
                         videoPlayer.requestVideoFrameCallback(captureFrame);
@@ -621,7 +602,7 @@
             
             // Initial calls to set the UI
             resetUI();
-            updateSettingsDisplay(); // Set initial text for sliders
+            updateSettingsDisplay();
         });
     </script>
 </body>
