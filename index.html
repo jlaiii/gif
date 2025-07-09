@@ -4,33 +4,35 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Video to GIF Converter</title>
-    <!-- Google Fonts: Inter for general text -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Google Fonts: Inter for general text, IBM Plex Mono for code-like elements/accents -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght+400;500;600&display=swap" rel="stylesheet">
+
     <style>
         /* CSS Variables for a consistent, professional dark theme */
         :root {
-            --color-bg-dark: #1A1A2E; /* Deep Blue-Purple */
-            --color-bg-medium: #16213E; /* Slightly lighter */
-            --color-bg-light: #0F3460; /* For active elements / borders */
-            --color-text-primary: #E0E0E0; /* Light grey */
-            --color-text-secondary: #AAAAAA; /* Muted grey */
-            --color-accent: #00BFFF; /* Sky Blue */
-            --color-accent-hover: #0099CC; /* Darker blue for hover */
-            --color-success: #4CAF50; /* Green for success */
-            --color-error: #F44336; /* Red for errors */
-            --color-border: rgba(255, 255, 255, 0.08);
-            --shadow-color: rgba(0, 0, 0, 0.3);
-
             --font-primary: 'Inter', sans-serif;
-            --border-radius-main: 12px;
-            --border-radius-sm: 6px;
+            --font-mono: 'IBM Plex Mono', monospace;
+
+            --color-bg-dark: #0F1626; /* Deep, muted blue-black */
+            --color-bg-medium: #1F2C41; /* Slightly lighter, for main containers */
+            --color-bg-light: #2A384F; /* For cards, offering contrast */
+            --color-text-primary: #E0E7EB; /* Soft off-white */
+            --color-text-secondary: #ABB8C3; /* Muted grey-blue */
+            --color-accent: #00BFFF; /* A vibrant, professional sky blue */
+            --color-accent-hover: #0099CC; /* Darker blue for hover */
+            --color-border: rgba(255, 255, 255, 0.08); /* Very subtle border color */
+            --shadow-color: rgba(0, 0, 0, 0.4); /* General shadow color */
         }
 
-        /* Basic Reset */
+        /* Basic Reset & Font Smoothing */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth; /* Smooth scrolling for anchor links */
         }
 
         body {
@@ -38,624 +40,861 @@
             background-color: var(--color-bg-dark);
             color: var(--color-text-primary);
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
+            justify-content: center;
             min-height: 100vh;
             padding: 20px;
-            overflow: hidden; /* Prevent scroll if content exceeds */
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow: hidden; /* Prevent scroll */
+            position: relative;
         }
 
-        /* Main Application Container */
-        .container {
+        /* Subtle Radial Gradient on background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
-            max-width: 280px; /* Adjusted to 280px for better usability while keeping it narrow */
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(0, 191, 255, 0.02) 0%, transparent 70%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .main-container {
             background-color: var(--color-bg-medium);
-            border-radius: var(--border-radius-main);
-            box-shadow: 0 8px 20px var(--shadow-color);
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 10px 30px var(--shadow-color);
             border: 1px solid var(--color-border);
-            padding: 25px;
             text-align: center;
-            position: relative;
+            max-width: 600px; /* Adjusted for central UI */
+            width: 90%;
             display: flex;
             flex-direction: column;
-            gap: 20px;
-        }
-
-        /* Header (Title and Settings Button) */
-        .header {
-            display: flex;
-            justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
+            gap: 30px;
+            position: relative;
+            z-index: 10; /* Ensure it's above background effects */
         }
 
-        .header h1 {
-            font-size: 1.4rem;
-            font-weight: 600;
+        h1 {
+            font-family: var(--font-mono);
+            font-size: 2.5rem;
             color: var(--color-accent);
+            margin-bottom: 20px;
+            letter-spacing: 0.05em;
         }
 
-        /* Settings Gear Icon Button */
-        .settings-btn {
+        /* Settings Button */
+        .settings-button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
             background: none;
             border: none;
             cursor: pointer;
-            padding: 5px;
             color: var(--color-text-secondary);
             transition: color 0.3s ease;
+            padding: 10px;
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
+            width: 48px;
+            height: 48px;
         }
 
-        .settings-btn:hover {
+        .settings-button:hover {
+            color: var(--color-accent);
+            background-color: rgba(0, 191, 255, 0.1);
+        }
+
+        .settings-button svg {
+            width: 30px;
+            height: 30px;
+            stroke: currentColor;
+            stroke-width: 2;
+        }
+
+        /* Drag & Drop Zone */
+        .drop-zone {
+            width: 100%;
+            min-height: 200px;
+            border: 3px dashed var(--color-border);
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+            transition: all 0.3s ease;
+            background-color: var(--color-bg-dark);
+            cursor: pointer;
+        }
+
+        .drop-zone.drag-over {
+            border-color: var(--color-accent);
+            background-color: rgba(0, 191, 255, 0.1);
+            transform: scale(1.02);
+        }
+
+        .drop-zone-icon {
+            width: 60px;
+            height: 60px;
+            color: var(--color-text-secondary);
+            margin-bottom: 15px;
+        }
+        .drop-zone-text {
+            color: var(--color-text-secondary);
+            font-size: 1.1rem;
+        }
+        .drop-zone-text strong {
             color: var(--color-accent);
         }
 
-        .settings-btn svg {
-            width: 24px;
-            height: 24px;
-        }
-
-        /* Common Button Styles */
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            padding: 10px 15px;
-            border-radius: var(--border-radius-sm);
-            font-size: 0.95rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            text-decoration: none;
-            flex-shrink: 0; /* Prevent shrinking in flex containers */
-        }
-
-        .btn-primary {
-            background-color: var(--color-accent);
-            color: var(--color-bg-dark);
-            border: 1px solid var(--color-accent);
-        }
-
-        .btn-primary:hover {
-            background-color: var(--color-accent-hover);
-            border-color: var(--color-accent-hover);
-            transform: translateY(-2px);
-        }
-
-        .btn-secondary {
-            background-color: transparent;
-            color: var(--color-text-primary);
-            border: 1px solid var(--color-border);
-        }
-
-        .btn-secondary:hover {
-            background-color: var(--color-bg-light);
-            border-color: var(--color-accent);
-            transform: translateY(-2px);
-        }
-        
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        /* Initial Drag & Drop Area */
-        .drag-drop-area {
-            border: 2px dashed var(--color-border);
-            border-radius: var(--border-radius-sm);
-            padding: 30px 15px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 15px;
-            cursor: pointer;
-            transition: background-color 0.3s ease, border-color 0.3s ease;
-            min-height: 120px; /* Ensure a decent size */
-        }
-
-        .drag-drop-area.highlight {
-            border-color: var(--color-accent);
-            background-color: rgba(0, 191, 255, 0.05);
-        }
-
-        .drag-drop-area p {
-            font-size: 1rem;
-            color: var(--color-text-secondary);
-        }
-
-        .drag-drop-area input[type="file"] {
-            display: none; /* Hide native file input */
-        }
-
-        .drag-drop-area .icon {
-            width: 40px;
-            height: 40px;
-            stroke: var(--color-text-secondary);
-            transition: stroke 0.3s ease;
-        }
-        .drag-drop-area.highlight .icon {
-            stroke: var(--color-accent);
+        input[type="file"] {
+            display: none; /* Hide default file input */
         }
 
         /* Processing State */
-        .processing-state {
+        .processing-status {
             display: none; /* Hidden by default */
+            width: 100%;
+            background-color: var(--color-bg-dark);
+            border-radius: 8px;
+            padding: 25px;
+            border: 1px solid var(--color-border);
             flex-direction: column;
             gap: 15px;
+            text-align: left;
+        }
+        .processing-status.active {
+            display: flex;
         }
 
-        .processing-state .file-name {
-            font-size: 1rem;
-            font-weight: 500;
+        .status-message {
+            font-size: 1.1rem;
             color: var(--color-text-primary);
-            word-break: break-all; /* For long file names */
-            max-width: 100%;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap; /* Prevent wrapping for a single line */
-            display: block; /* Ensures ellipsis works */
-            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-message .spinner {
+            border: 4px solid rgba(0, 191, 255, 0.2);
+            border-top: 4px solid var(--color-accent);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
         }
 
         .progress-bar-container {
             width: 100%;
-            background-color: var(--color-bg-light);
-            border-radius: var(--border-radius-sm);
-            height: 8px;
+            background-color: var(--color-border);
+            border-radius: 5px;
+            height: 15px;
             overflow: hidden;
-            margin-top: 5px;
+            margin-top: 10px;
         }
 
         .progress-bar {
             height: 100%;
             width: 0%;
             background-color: var(--color-accent);
-            border-radius: var(--border-radius-sm);
-            transition: width 0.3s ease-out;
+            border-radius: 5px;
+            transition: width 0.1s linear;
         }
 
-        .status-text {
-            font-size: 0.9rem;
+        .timing-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.95rem;
             color: var(--color-text-secondary);
             margin-top: 5px;
         }
 
-        .time-info {
-            font-size: 0.85rem;
-            color: var(--color-text-secondary);
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-            align-items: flex-start; /* Align text left within the column */
-            width: 100%;
-            text-align: left; /* Ensure text aligns left */
-            padding: 0 5px; /* Small padding for inner details */
-        }
-        .time-info div {
-            width: 100%;
-            display: flex;
-            justify-content: space-between;
-        }
-        .time-info span:first-child {
-            color: var(--color-text-primary);
-        }
-
         /* Completed State */
-        .completed-state {
+        .conversion-result {
             display: none; /* Hidden by default */
+            width: 100%;
+            background-color: var(--color-bg-dark);
+            border-radius: 8px;
+            padding: 25px;
+            border: 1px solid var(--color-border);
             flex-direction: column;
-            gap: 15px;
+            gap: 20px;
             align-items: center;
+            text-align: center;
+        }
+        .conversion-result.active {
+            display: flex;
         }
 
-        .completed-state .icon-check {
-            color: var(--color-success);
-            width: 60px;
-            height: 60px;
-            margin-bottom: 10px;
+        .result-status {
+            font-family: var(--font-mono);
+            font-size: 1.8rem;
+            color: var(--color-accent);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .result-status svg {
+            color: #28a745; /* Green checkmark */
+            width: 30px;
+            height: 30px;
         }
 
-        .completed-state .message {
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: var(--color-success);
+        .result-preview {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 8px;
+            object-fit: contain;
+            border: 1px solid var(--color-border);
         }
 
-        .file-details {
-            font-size: 0.9rem;
-            color: var(--color-text-secondary);
+        .result-details {
             display: flex;
             flex-direction: column;
-            gap: 5px;
-            width: 100%;
-            padding: 0 5px; /* Small padding for inner details */
-            text-align: left;
+            gap: 8px;
+            font-size: 0.95rem;
+            color: var(--color-text-secondary);
         }
-        .file-details div {
-            width: 100%;
-            display: flex;
-            justify-content: space-between;
-        }
-        .file-details span:first-child {
+        .result-details span strong {
             color: var(--color-text-primary);
         }
 
-        .action-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            width: 100%;
-            margin-top: 10px;
+        .download-button {
+            display: inline-flex;
+            align-items: center;
+            padding: 12px 25px;
+            background-color: var(--color-accent);
+            color: var(--color-bg-dark);
+            text-decoration: none;
+            border-radius: 8px;
+            font-family: var(--font-mono);
+            font-size: 1rem;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            box-shadow: 0 5px 15px rgba(0, 191, 255, 0.2);
+            margin-top: 15px;
+            transition: all 0.3s ease;
+        }
+        .download-button:hover {
+            background-color: var(--color-accent-hover);
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 8px 20px rgba(0, 191, 255, 0.3);
+        }
+        .download-button svg {
+            margin-right: 8px;
+            width: 20px;
+            height: 20px;
+            stroke: var(--color-bg-dark);
         }
 
-        /* Settings Modal Overlay */
-        .settings-overlay {
-            position: absolute;
+        .convert-another {
+            margin-top: 15px;
+            background: none;
+            border: 1px solid var(--color-accent);
+            color: var(--color-accent);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+        .convert-another:hover {
+            background-color: var(--color-accent);
+            color: var(--color-bg-dark);
+        }
+
+        /* Settings Modal */
+        .settings-modal-overlay {
+            display: none; /* Hidden by default */
+            position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             background-color: rgba(0, 0, 0, 0.7);
-            border-radius: var(--border-radius-main);
-            display: flex;
-            justify-content: center;
+            backdrop-filter: blur(5px);
+            z-index: 1000;
             align-items: center;
-            z-index: 10;
-            opacity: 0;
-            pointer-events: none; /* Allows clicks to pass through when hidden */
-            transition: opacity 0.3s ease;
+            justify-content: center;
         }
-
-        .settings-overlay.visible {
-            opacity: 1;
-            pointer-events: all; /* Allows interaction when visible */
-        }
-
-        .settings-modal {
-            background-color: var(--color-bg-medium);
-            padding: 25px;
-            border-radius: var(--border-radius-main);
-            box-shadow: 0 5px 15px var(--shadow-color);
-            border: 1px solid var(--color-border);
-            width: 90%; /* Max width within overlay */
+        .settings-modal-overlay.active {
             display: flex;
-            flex-direction: column;
-            gap: 20px;
-            position: relative;
+        }
+
+        .settings-modal-content {
+            background-color: var(--color-bg-light);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 15px 40px var(--shadow-color);
+            border: 1px solid var(--color-border);
+            max-width: 450px;
+            width: 90%;
             text-align: left;
+            position: relative;
         }
 
-        .settings-modal h2 {
-            font-size: 1.2rem;
+        .settings-modal-content h2 {
+            font-family: var(--font-mono);
+            font-size: 1.8rem;
             color: var(--color-accent);
-            margin-bottom: 10px;
+            margin-bottom: 25px;
+            border-bottom: 1px solid var(--color-border);
+            padding-bottom: 10px;
         }
 
-        .settings-modal .close-btn {
+        .settings-modal-content .close-button {
             position: absolute;
-            top: 10px;
-            right: 10px;
+            top: 15px;
+            right: 15px;
             background: none;
             border: none;
+            font-size: 1.8rem;
             color: var(--color-text-secondary);
-            font-size: 1.5rem;
             cursor: pointer;
             transition: color 0.3s ease;
         }
-        .settings-modal .close-btn:hover {
+        .settings-modal-content .close-button:hover {
             color: var(--color-accent);
         }
 
-        .setting-group {
-            margin-bottom: 15px;
+        .setting-item {
+            margin-bottom: 20px;
         }
-
-        .setting-group label {
+        .setting-item label {
             display: block;
-            font-size: 0.95rem;
+            font-size: 1rem;
             color: var(--color-text-primary);
             margin-bottom: 8px;
+            font-family: var(--font-mono);
         }
-
-        .setting-group select {
+        .setting-item input[type="number"],
+        .setting-item select {
             width: 100%;
-            padding: 8px 10px;
-            border-radius: var(--border-radius-sm);
-            border: 1px solid var(--color-border);
+            padding: 10px 15px;
             background-color: var(--color-bg-dark);
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
             color: var(--color-text-primary);
-            font-size: 0.9rem;
-            appearance: none; /* Remove default arrow */
-            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%23AAAAAA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>'); /* Custom dropdown arrow */
-            background-repeat: no-repeat;
-            background-position: right 8px center;
-            background-size: 16px;
+            font-family: var(--font-primary);
+            font-size: 1rem;
+            appearance: none; /* Remove default select arrow */
+            transition: border-color 0.3s ease;
         }
-
-        .setting-group select:focus {
+        .setting-item input[type="number"]:focus,
+        .setting-item select:focus {
             outline: none;
             border-color: var(--color-accent);
-            box-shadow: 0 0 0 2px rgba(0, 191, 255, 0.2);
         }
 
-        /* Utility class to hide elements */
+        .setting-item p.help-text {
+            font-size: 0.85rem;
+            color: var(--color-text-secondary);
+            margin-top: 5px;
+        }
+
+        /* Utility classes */
         .hidden {
             display: none !important;
+        }
+
+        /* Keyframe Animations */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive Adjustments */
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 30px;
+                gap: 20px;
+            }
+            h1 {
+                font-size: 2rem;
+            }
+            .drop-zone {
+                min-height: 150px;
+            }
+            .drop-zone-icon {
+                width: 50px;
+                height: 50px;
+            }
+            .drop-zone-text {
+                font-size: 1rem;
+            }
+            .settings-button {
+                width: 40px;
+                height: 40px;
+            }
+            .settings-button svg {
+                width: 24px;
+                height: 24px;
+            }
+            .processing-status, .conversion-result {
+                padding: 20px;
+            }
+            .result-status {
+                font-size: 1.5rem;
+            }
+            .download-button {
+                padding: 10px 20px;
+                font-size: 0.95rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 15px;
+            }
+            .main-container {
+                padding: 25px;
+            }
+            h1 {
+                font-size: 1.8rem;
+            }
+            .drop-zone {
+                min-height: 120px;
+            }
+            .drop-zone-icon {
+                width: 40px;
+                height: 40px;
+            }
+            .drop-zone-text {
+                font-size: 0.9rem;
+            }
+            .settings-modal-content {
+                padding: 25px;
+            }
+            .settings-modal-content h2 {
+                font-size: 1.5rem;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container" id="app-container">
-        <div class="header">
-            <h1>GIF Converter</h1>
-            <button class="settings-btn" id="settings-btn" aria-label="Settings">
-                <!-- Settings Gear Icon (Lucide Icons) -->
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0-.33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1.82.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-            </button>
-        </div>
+    <div class="main-container">
+        <h1>Video to GIF Converter</h1>
 
-        <!-- Initial Drag & Drop State -->
-        <div id="initial-state" class="drag-drop-area">
+        <button class="settings-button" id="settings-button" aria-label="Settings">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-settings">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0-.33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82-.33V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09A1.65 1.65 0 0 0 15 4.6a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0 .33 1.82H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+        </button>
+
+        <div class="drop-zone" id="drop-zone">
             <input type="file" id="file-input" accept="video/*">
-            <!-- File Icon (Lucide Icons) -->
-            <svg class="icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="17" x2="12" y2="11"></line><polyline points="9 14 12 11 15 14"></polyline></svg>
-            <p>Drag & Drop Video Here</p>
-            <button class="btn btn-secondary" id="browse-btn">Browse File</button>
+            <svg class="drop-zone-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-upload-cloud">
+                <polyline points="16 16 12 12 8 16"></polyline>
+                <line x1="12" y1="12" x2="12" y2="21"></line>
+                <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path>
+                <polyline points="16 16 12 12 8 16"></polyline>
+            </svg>
+            <p class="drop-zone-text">Drag & drop your video here, or <strong>click to select</strong></p>
         </div>
 
-        <!-- Processing State -->
-        <div id="processing-state" class="processing-state hidden">
-            <p class="file-name" id="processing-file-name"></p>
+        <div class="processing-status hidden" id="processing-status">
+            <p class="status-message" id="current-status">
+                <span class="spinner"></span> Preparing converter...
+            </p>
             <div class="progress-bar-container">
                 <div class="progress-bar" id="progress-bar"></div>
             </div>
-            <p class="status-text" id="status-text">Processing video...</p>
-            <div class="time-info">
-                <div><span>Time Elapsed:</span> <span id="time-elapsed">0s</span></div>
-                <div><span>Est. Time Left:</span> <span id="estimated-time">Calculating...</span></div>
+            <div class="timing-info">
+                <span id="time-elapsed">Time Elapsed: 0s</span>
+                <span id="time-remaining">Estimated Remaining: --</span>
             </div>
         </div>
 
-        <!-- Completed State -->
-        <div id="completed-state" class="completed-state hidden">
-            <!-- Checkmark Icon (Lucide Icons) -->
-            <svg class="icon-check" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-            <p class="message">Conversion Complete!</p>
-            <div class="file-details">
-                <div><span>Original Size:</span> <span id="original-size">N/A</span></div>
-                <div><span>GIF Size:</span> <span id="gif-size">N/A</span></div>
-                <div><span>Video Duration:</span> <span id="video-duration">N/A</span></div>
-                <div><span>Processing Time:</span> <span id="processing-duration">N/A</span></div>
+        <div class="conversion-result hidden" id="conversion-result">
+            <h2 class="result-status">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-check-circle">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-8.5"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+                Conversion Complete!
+            </h2>
+            <img src="" alt="Converted GIF" class="result-preview" id="gif-preview">
+            <div class="result-details">
+                <span>Original File: <strong><span id="original-file-name"></span> (<span id="original-file-size"></span>)</strong></span>
+                <span>Output GIF Size: <strong><span id="output-file-size"></span></strong></span>
+                <span>Conversion Duration: <strong><span id="conversion-duration"></span></strong></span>
             </div>
-            <div class="action-buttons">
-                <button class="btn btn-primary" id="download-btn" disabled>Download GIF</button>
-                <button class="btn btn-secondary" id="convert-another-btn">Convert Another</button>
-            </div>
+            <a href="#" download="converted.gif" class="download-button" id="download-button">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-download">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Download GIF
+            </a>
+            <button class="convert-another" id="convert-another">Convert Another Video</button>
         </div>
+    </div>
 
-        <!-- Settings Overlay -->
-        <div id="settings-overlay" class="settings-overlay">
-            <div class="settings-modal">
-                <button class="close-btn" id="close-settings-btn" aria-label="Close settings">×</button>
-                <h2>Settings</h2>
-                <div class="setting-group">
-                    <label for="quality-select">GIF Quality:</label>
-                    <select id="quality-select">
-                        <option value="low">Low (Smaller file, lower quality)</option>
-                        <option value="medium" selected>Medium (Balanced)</option>
-                        <option value="high">High (Larger file, better quality)</option>
-                    </select>
-                </div>
-                <!-- More settings could go here -->
+    <!-- Settings Modal -->
+    <div class="settings-modal-overlay" id="settings-modal-overlay">
+        <div class="settings-modal-content">
+            <button class="close-button" id="close-settings-button">×</button>
+            <h2>Settings</h2>
+            <div class="setting-item">
+                <label for="gif-width">GIF Width (px):</label>
+                <input type="number" id="gif-width" min="100" max="1920" value="480">
+                <p class="help-text">Set the width of the output GIF. Height will be scaled automatically. (Default: 480px)</p>
+            </div>
+            <div class="setting-item">
+                <label for="gif-fps">Frames Per Second (FPS):</label>
+                <input type="number" id="gif-fps" min="1" max="60" value="10">
+                <p class="help-text">Lower FPS reduces file size and quality. (Default: 10 FPS)</p>
+            </div>
+            <div class="setting-item">
+                <label for="gif-quality">GIF Quality (Lower = Better):</label>
+                <select id="gif-quality">
+                    <option value="1">High (Larger file)</option>
+                    <option value="5">Medium</option>
+                    <option value="10" selected>Balanced (Default)</option>
+                    <option value="20">Low (Smaller file)</option>
+                </select>
+                <p class="help-text">Controls the visual fidelity and color palette. This value maps to FFmpeg's `dither` and `colors` options.</p>
             </div>
         </div>
     </div>
 
+    <!-- FFmpeg.wasm Library -->
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.9.7/dist/ffmpeg.min.js"></script>
     <script>
-        // Get references to DOM elements
-        const initialState = document.getElementById('initial-state');
-        const processingState = document.getElementById('processing-state');
-        const completedState = document.getElementById('completed-state');
-        const fileInput = document.getElementById('file-input');
-        const browseBtn = document.getElementById('browse-btn');
-        const dragDropArea = document.getElementById('initial-state'); // Same element as initial-state
+        const { createFFmpeg, fetchFile } = FFmpeg;
+        // Point corePath to a CDN for GitHub Pages compatibility
+        const ffmpeg = createFFmpeg({ log: false, corePath: 'https://unpkg.com/@ffmpeg/core@0.9.7/dist/ffmpeg-core.js' });
 
-        const processingFileName = document.getElementById('processing-file-name');
+        // DOM Elements
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const processingStatus = document.getElementById('processing-status');
+        const currentStatus = document.getElementById('current-status');
         const progressBar = document.getElementById('progress-bar');
         const timeElapsedSpan = document.getElementById('time-elapsed');
-        const estimatedTimeSpan = document.getElementById('estimated-time');
-        const statusText = document.getElementById('status-text');
+        const timeRemainingSpan = document.getElementById('time-remaining');
+        const conversionResult = document.getElementById('conversion-result');
+        const gifPreview = document.getElementById('gif-preview');
+        const originalFileNameSpan = document.getElementById('original-file-name');
+        const originalFileSizeSpan = document.getElementById('original-file-size');
+        const outputFileSizeSpan = document.getElementById('output-file-size');
+        const conversionDurationSpan = document.getElementById('conversion-duration');
+        const downloadButton = document.getElementById('download-button');
+        const convertAnotherButton = document.getElementById('convert-another');
+        const settingsButton = document.getElementById('settings-button');
+        const settingsModalOverlay = document.getElementById('settings-modal-overlay');
+        const closeSettingsButton = document.getElementById('close-settings-button');
 
-        const originalSizeSpan = document.getElementById('original-size');
-        const gifSizeSpan = document.getElementById('gif-size');
-        const videoDurationSpan = document.getElementById('video-duration');
-        const processingDurationSpan = document.getElementById('processing-duration');
-        const downloadBtn = document.getElementById('download-btn');
-        const convertAnotherBtn = document.getElementById('convert-another-btn');
+        // Settings elements
+        const gifWidthInput = document.getElementById('gif-width');
+        const gifFpsInput = document.getElementById('gif-fps');
+        const gifQualitySelect = document.getElementById('gif-quality');
 
-        const settingsBtn = document.getElementById('settings-btn');
-        const settingsOverlay = document.getElementById('settings-overlay');
-        const closeSettingsBtn = document.getElementById('close-settings-btn');
-        const qualitySelect = document.getElementById('quality-select');
-
-        let currentFile = null;
         let conversionStartTime = 0;
-        let simulationInterval = null;
-        let estimatedTotalTime = 0; // Simulated total time for the current conversion
-        const avgConversionTime = 15; // Average in seconds for simulation purposes (used for estimate)
+        let lastProgressTime = 0;
+        let estimatedTimeTotal = 0;
+        let currentFile = null;
+
+        // --- Settings Management ---
+        const defaultSettings = {
+            width: 480,
+            fps: 10,
+            quality: '10' // This corresponds to a specific dither/colors setting
+        };
+
+        function loadSettings() {
+            const savedSettings = JSON.parse(localStorage.getItem('gifConverterSettings')) || {};
+            const settings = { ...defaultSettings, ...savedSettings };
+
+            gifWidthInput.value = settings.width;
+            gifFpsInput.value = settings.fps;
+            gifQualitySelect.value = settings.quality;
+        }
+
+        function saveSettings() {
+            const settings = {
+                width: parseInt(gifWidthInput.value),
+                fps: parseInt(gifFpsInput.value),
+                quality: gifQualitySelect.value
+            };
+            localStorage.setItem('gifConverterSettings', JSON.stringify(settings));
+        }
+
+        function getConversionSettings() {
+            return {
+                width: parseInt(gifWidthInput.value),
+                fps: parseInt(gifFpsInput.value),
+                quality: gifQualitySelect.value
+            };
+        }
 
         // --- UI State Management ---
-        /**
-         * Hides all main UI states and then shows the specified state.
-         * @param {HTMLElement} stateElement The element corresponding to the state to show.
-         */
-        function showState(stateElement) {
-            [initialState, processingState, completedState].forEach(el => {
-                el.classList.add('hidden');
-            });
-            stateElement.classList.remove('hidden');
-        }
-
-        /** Resets the UI to its initial drag & drop state. */
         function resetUI() {
-            showState(initialState);
+            dropZone.classList.remove('hidden');
+            processingStatus.classList.remove('active');
+            conversionResult.classList.remove('active');
+            currentStatus.innerHTML = '<span class="spinner"></span> Preparing converter...';
             progressBar.style.width = '0%';
-            timeElapsedSpan.textContent = '0s';
-            estimatedTimeSpan.textContent = 'Calculating...';
-            statusText.textContent = 'Processing video...';
-            downloadBtn.removeAttribute('href'); // Clear previous download link
-            downloadBtn.setAttribute('disabled', 'true'); // Disable until ready again
+            timeElapsedSpan.textContent = 'Time Elapsed: 0s';
+            timeRemainingSpan.textContent = 'Estimated Remaining: --';
+            if (gifPreview.src) URL.revokeObjectURL(gifPreview.src); // Clean up previous blob URL
+            gifPreview.src = '';
             currentFile = null;
-            clearInterval(simulationInterval); // Stop any ongoing simulation
+            settingsButton.classList.remove('hidden'); // Show settings button
         }
 
-        // --- Drag & Drop Handlers ---
-        dragDropArea.addEventListener('dragover', (e) => {
-            e.preventDefault(); // Prevent default to allow drop
-            e.stopPropagation();
-            dragDropArea.classList.add('highlight'); // Add visual highlight
-            e.dataTransfer.dropEffect = 'copy'; // Show a copy cursor
-        });
+        function showProcessing(fileName, fileSize) {
+            dropZone.classList.add('hidden');
+            conversionResult.classList.add('hidden');
+            processingStatus.classList.add('active');
+            settingsButton.classList.add('hidden'); // Hide settings button during processing
 
-        dragDropArea.addEventListener('dragleave', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            dragDropArea.classList.remove('highlight'); // Remove visual highlight
-        });
+            originalFileNameSpan.textContent = fileName;
+            originalFileSizeSpan.textContent = formatBytes(fileSize);
+            
+            conversionStartTime = performance.now();
+            lastProgressTime = conversionStartTime;
+            estimatedTimeTotal = 0; // Reset
+        }
 
-        dragDropArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            dragDropArea.classList.remove('highlight'); // Remove visual highlight
+        function updateProgress(message, ratio) {
+            currentStatus.innerHTML = `<span class="spinner"></span> ${message}`;
+            progressBar.style.width = `${ratio * 100}%`;
 
-            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                const file = e.dataTransfer.files[0];
-                if (file.type.startsWith('video/')) {
-                    handleFile(file); // Process the dropped file
-                } else {
-                    alert('Please drop a video file.'); // Inform user if not a video
+            const now = performance.now();
+            const elapsed = (now - conversionStartTime) / 1000;
+            timeElapsedSpan.textContent = `Time Elapsed: ${elapsed.toFixed(1)}s`;
+
+            if (ratio > 0 && now - lastProgressTime > 500) { // Update estimated time more frequently
+                lastProgressTime = now;
+                // Simple estimate: total_time = elapsed / progress_ratio
+                // This will be volatile early on, but stabilize.
+                estimatedTimeTotal = elapsed / ratio;
+                const remaining = estimatedTimeTotal - elapsed;
+                timeRemainingSpan.textContent = `Estimated Remaining: ${Math.max(0, remaining).toFixed(1)}s`;
+            } else if (ratio === 0) { // Reset estimated time at start
+                timeRemainingSpan.textContent = `Estimated Remaining: --`;
+            }
+        }
+
+        function showResult(gifUrl, gifSize, duration) {
+            processingStatus.classList.remove('active');
+            conversionResult.classList.add('active');
+            gifPreview.src = gifUrl;
+            outputFileSizeSpan.textContent = formatBytes(gifSize);
+            conversionDurationSpan.textContent = `${duration.toFixed(1)}s`;
+            settingsButton.classList.remove('hidden'); // Show settings button
+        }
+
+        function showError(message) {
+            resetUI();
+            alert(`Error: ${message}\n\nPlease try another file or adjust settings.`);
+        }
+
+        // --- Helper Functions ---
+        function formatBytes(bytes, decimals = 2) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
+
+        async function loadFFmpegIfNecessary() {
+            if (!ffmpeg.isLoaded()) {
+                currentStatus.innerHTML = '<span class="spinner"></span> Loading converter core... (First time may take longer)';
+                try {
+                    await ffmpeg.load();
+                    currentStatus.textContent = 'Converter loaded. Ready for conversion.';
+                } catch (e) {
+                    console.error("Failed to load converter:", e);
+                    showError("Failed to load converter. Please check your internet connection.");
+                    return false;
                 }
+            }
+            return true;
+        }
+
+        // --- Event Handlers ---
+
+        // Drag & Drop
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.add('drag-over');
+            e.dataTransfer.dropEffect = 'copy';
+        });
+
+        dropZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.remove('drag-over');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.remove('drag-over');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                processFile(files[0]);
             }
         });
 
-        // --- File Input Handlers ---
-        browseBtn.addEventListener('click', () => {
-            fileInput.click(); // Programmatically click the hidden file input
+        // Click to select file
+        dropZone.addEventListener('click', () => {
+            fileInput.click();
         });
 
         fileInput.addEventListener('change', (e) => {
-            if (e.target.files && e.target.files.length > 0) {
-                handleFile(e.target.files[0]); // Process the selected file
+            if (e.target.files.length > 0) {
+                processFile(e.target.files[0]);
             }
         });
 
-        // --- File Processing and Conversion Simulation ---
-        /**
-         * Handles the selected file and simulates the conversion process.
-         * @param {File} file The video file to be processed.
-         */
-        function handleFile(file) {
+        async function processFile(file) {
             currentFile = file;
-            showState(processingState); // Switch to processing UI
-            processingFileName.textContent = file.name;
-            conversionStartTime = Date.now();
+            if (!file.type.startsWith('video/')) {
+                showError('Please drop a video file.');
+                return;
+            }
 
-            // Simulate estimated total time for this conversion, adding some randomness
-            estimatedTotalTime = avgConversionTime + (Math.random() * 5 - 2.5);
-            if (estimatedTotalTime < 5) estimatedTotalTime = 5; // Ensure a minimum simulation time
+            resetUI();
+            showProcessing(file.name, file.size);
 
-            console.log(`Starting conversion for: ${file.name}`);
-            console.log(`Simulated estimated total time: ${estimatedTotalTime.toFixed(1)}s`);
+            const loaded = await loadFFmpegIfNecessary();
+            if (!loaded) return; // Stop if FFmpeg failed to load
 
-            let progress = 0;
-            const updateInterval = 100; // Update progress every 100ms
-            const totalSteps = estimatedTotalTime * (1000 / updateInterval); // Total steps for simulation
-            let currentStep = 0;
+            try {
+                updateProgress('Reading video data...', 0);
+                const data = await fetchFile(file);
+                await ffmpeg.FS('writeFile', file.name, data);
 
-            simulationInterval = setInterval(() => {
-                currentStep++;
-                progress = (currentStep / totalSteps) * 100; // Calculate current percentage
+                const settings = getConversionSettings();
+                const outputFileName = 'output.gif';
 
-                // Update progress bar and text
-                progressBar.style.width = `${progress}%`;
-                statusText.textContent = `Processing video... ${Math.floor(progress)}%`;
-
-                const elapsedSeconds = Math.floor((Date.now() - conversionStartTime) / 1000);
-                timeElapsedSpan.textContent = `${elapsedSeconds}s`;
-
-                // Calculate remaining time, ensuring it doesn't go below zero
-                const remainingSeconds = Math.max(0, Math.floor(estimatedTotalTime - elapsedSeconds));
-                estimatedTimeSpan.textContent = `${remainingSeconds}s`;
-
-                if (progress >= 100) {
-                    clearInterval(simulationInterval); // Stop the simulation
-                    simulateCompletion(file); // Call the completion function
+                // Map quality setting to FFmpeg options for paletteuse
+                // Dithering options: bayer, floyd_steinberg, sierra2_4a, sierra2_2a, none
+                // colors: number of colors in the palette (max 256 for GIF)
+                let ditherOption = 'sierra2_4a'; // Good general-purpose dither
+                let colorsOption = 128; // Default, balanced
+                switch(settings.quality) {
+                    case '1': ditherOption = 'bayer:bayer_scale=0'; colorsOption = 256; break; // Highest quality, max colors
+                    case '5': ditherOption = 'sierra2_4a'; colorsOption = 200; break; // Good balance
+                    case '10': ditherOption = 'sierra2_4a'; colorsOption = 128; break; // Default, good compromise
+                    case '20': ditherOption = 'sierra2_2a'; colorsOption = 64; break; // Lower quality, fewer colors
                 }
-            }, updateInterval);
+
+                // Complex filter for palettegen and paletteuse for better GIF quality
+                const filters = [
+                    `fps=${settings.fps}`,
+                    `scale=${settings.width}:-1:flags=lanczos` // lanczos for high quality scaling
+                ].join(',');
+
+                // Pass 1: Generate palette
+                const palettegenCommand = [
+                    '-i', file.name,
+                    '-vf', `${filters},palettegen=stats_mode=diff`, // diff mode for animations
+                    '-y', 'palette.png' // Output palette image
+                ];
+
+                // Pass 2: Use palette to generate GIF
+                const paletteuseCommand = [
+                    '-i', file.name,
+                    '-i', 'palette.png', // Input palette
+                    '-lavfi', `${filters}[x];[x][1:v]paletteuse=dither=${ditherOption}:colors=${colorsOption}`,
+                    '-y', outputFileName
+                ];
+
+                // Monitor progress
+                ffmpeg.setProgress(({ ratio }) => {
+                    // Ratio from 0 to 1, spread across both passes roughly 50/50
+                    let overallRatio = ratio / 2; // For palettegen
+                    if (ffmpeg.currentCommand === paletteuseCommand.join(' ')) {
+                        overallRatio = 0.5 + (ratio / 2); // For paletteuse
+                    }
+                    updateProgress('Converting video...', overallRatio);
+                });
+
+                updateProgress('Generating GIF palette (Pass 1/2)...', 0.1);
+                await ffmpeg.run(...palettegenCommand);
+
+                updateProgress('Generating GIF (Pass 2/2)...', 0.5);
+                await ffmpeg.run(...paletteuseCommand);
+
+                const outputData = ffmpeg.FS('readFile', outputFileName);
+                const gifBlob = new Blob([outputData.buffer], { type: 'image/gif' });
+                const gifUrl = URL.createObjectURL(gifBlob);
+
+                const conversionEndtime = performance.now();
+                const durationSeconds = (conversionEndtime - conversionStartTime) / 1000;
+
+                showResult(gifUrl, gifBlob.size, durationSeconds);
+                downloadButton.href = gifUrl;
+                downloadButton.download = `${file.name.split('.')[0] || 'converted'}.gif`;
+
+            } catch (error) {
+                console.error("Conversion error:", error);
+                showError(`Conversion failed: ${error.message || 'An unknown error occurred.'}`);
+            } finally {
+                // Clean up files from FFmpeg's virtual filesystem
+                if (file) {
+                    try {
+                        await ffmpeg.FS('unlink', file.name);
+                    } catch (e) { /* ignore if already gone */ }
+                }
+                try {
+                    await ffmpeg.FS('unlink', 'palette.png');
+                    await ffmpeg.FS('unlink', 'output.gif');
+                } catch (e) { /* ignore if not created or already gone */ }
+            }
         }
 
-        /**
-         * Simulates the completion of the conversion and updates the UI accordingly.
-         * @param {File} file The original video file.
-         */
-        function simulateCompletion(file) {
-            const finalProcessingTime = ((Date.now() - conversionStartTime) / 1000).toFixed(1);
-            console.log(`Conversion finished in: ${finalProcessingTime}s`);
-            showState(completedState); // Switch to completed UI
-
-            // Simulate file sizes and video duration
-            const originalFileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
-            // Simulate GIF size as 80-120% of original video size
-            const simulatedGifSizeMB = (parseFloat(originalFileSizeMB) * (0.8 + Math.random() * 0.4)).toFixed(2); 
-            // Simulate video duration as 50-150% of the processing time (for variety)
-            const simulatedVideoDuration = (parseFloat(finalProcessingTime) * (0.5 + Math.random() * 1.0)).toFixed(1); 
-
-            originalSizeSpan.textContent = `${originalFileSizeMB} MB`;
-            gifSizeSpan.textContent = `${simulatedGifSizeMB} MB`;
-            videoDurationSpan.textContent = `${simulatedVideoDuration}s`;
-            processingDurationSpan.textContent = `${finalProcessingTime}s`;
-            
-            // Create a dummy Blob URL for download. In a real app, this would be the actual GIF data.
-            const dummyGifBlob = new Blob([`Simulated GIF data for ${file.name}`], { type: 'image/gif' });
-            const downloadUrl = URL.createObjectURL(dummyGifBlob);
-            downloadBtn.href = downloadUrl;
-            // Suggest a filename by replacing the original extension with .gif
-            downloadBtn.download = file.name.replace(/\.[^/.]+$/, "") + '.gif'; 
-            downloadBtn.removeAttribute('disabled'); // Enable the download button
-        }
-
-        // --- Event Listeners for Buttons ---
-        convertAnotherBtn.addEventListener('click', resetUI); // Resets UI to initial state
-
-        // --- Settings Modal Logic ---
-        settingsBtn.addEventListener('click', () => {
-            settingsOverlay.classList.add('visible'); // Show settings modal
+        // Convert Another button
+        convertAnotherButton.addEventListener('click', () => {
+            resetUI();
+            fileInput.value = ''; // Clear file input
         });
 
-        closeSettingsBtn.addEventListener('click', () => {
-            settingsOverlay.classList.remove('visible'); // Hide settings modal
+        // Settings Modal Handlers
+        settingsButton.addEventListener('click', () => {
+            settingsModalOverlay.classList.add('active');
         });
 
-        // Close settings if clicked outside the modal content
-        settingsOverlay.addEventListener('click', (e) => {
-            if (e.target === settingsOverlay) { 
-                settingsOverlay.classList.remove('visible');
+        closeSettingsButton.addEventListener('click', () => {
+            settingsModalOverlay.classList.remove('active');
+            saveSettings(); // Save settings when modal is closed
+        });
+
+        settingsModalOverlay.addEventListener('click', (e) => {
+            if (e.target === settingsModalOverlay) {
+                settingsModalOverlay.classList.remove('active');
+                saveSettings(); // Save settings when clicking outside
             }
         });
 
-        // Event listener for quality setting change (simulated save)
-        qualitySelect.addEventListener('change', (e) => {
-            console.log('GIF Quality set to:', e.target.value);
-            // In a real application, you would save this setting (e.g., in localStorage)
-            // and apply it to your actual conversion logic on the backend or in WebAssembly.
+        // Initial setup on DOMContentLoaded
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSettings(); // Load settings when page loads
+            resetUI(); // Ensure UI is in default state
+            // Pre-loading FFmpeg here for faster first conversion, but hide status until file is dropped
+            loadFFmpegIfNecessary();
         });
-
-        // Initialize the UI on page load
-        resetUI();
     </script>
 </body>
 </html>
