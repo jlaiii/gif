@@ -3,541 +3,512 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MP4 to GIF Converter</title>
+    <title>Modern MP4 to GIF Converter</title>
     <style>
         :root {
-            --primary-color: #4f46e5;
-            --primary-hover: #4338ca;
-            --secondary-color: #10b981;
-            --secondary-hover: #059669;
-            --light-gray: #f3f4f6;
-            --medium-gray: #d1d5db;
-            --dark-gray: #374151;
-            --text-color: #1f2937;
-            --bg-color: #ffffff;
-            --error-color: #ef4444;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+            --background-color: #f0f2f5;
+            --container-background: #ffffff;
+            --primary-accent: #6c5ce7;
+            --primary-accent-dark: #5847d3;
+            --text-color: #333;
+            --text-light: #777;
+            --border-color: #e0e0e0;
+            --success-color: #28a745;
+            --error-color: #dc3545;
+            --shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+            --border-radius: 12px;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             display: flex;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
             margin: 0;
-            background-color: var(--light-gray);
+            background-color: var(--background-color);
             color: var(--text-color);
         }
 
-        /* --- Main App Container & States --- */
-        #app-container {
-            width: 90%;
-            max-width: 480px;
-            background: var(--bg-color);
-            border-radius: 16px;
-            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
-            padding: 2rem;
-            text-align: center;
+        .main-container {
+            max-width: 500px;
+            width: 95%;
             position: relative;
-            overflow: hidden;
+        }
+        
+        /* --- UI States --- */
+        .ui-state {
+            background-color: var(--container-background);
+            padding: 40px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            text-align: center;
+            transition: opacity 0.3s ease, transform 0.3s ease;
         }
 
-        .state-container {
-            display: none; /* All states hidden by default */
-            animation: fadeIn 0.5s ease-out forwards;
+        /* --- Initial State (Dropzone) --- */
+        #initialState.hidden, #processingState.hidden, #completedState.hidden {
+            display: none;
         }
 
-        .state-container.active {
-            display: block; /* Show the active state */
-        }
-
-        /* --- State 1: Drop Zone --- */
-        #drop-zone {
-            border: 3px dashed var(--medium-gray);
-            border-radius: 12px;
-            padding: 3rem 1.5rem;
+        #dropZone {
+            border: 3px dashed var(--border-color);
+            padding: 50px 20px;
+            border-radius: var(--border-radius);
             cursor: pointer;
-            transition: border-color 0.2s ease, background-color 0.2s ease;
+            transition: border-color 0.3s ease, background-color 0.3s ease;
         }
-        #drop-zone.drag-over {
-            border-color: var(--primary-color);
-            background-color: #f0f2ff;
+        #dropZone.drag-over {
+            border-color: var(--primary-accent);
+            background-color: #f8f7ff;
         }
-        #drop-zone h1 {
-            font-size: 1.5rem;
-            color: var(--dark-gray);
-            margin: 0 0 0.5rem 0;
+        #dropZone .drop-icon {
+            font-size: 48px;
+            color: var(--primary-accent);
+            margin-bottom: 15px;
         }
-        #drop-zone p {
-            color: #6b7280;
+        #dropZone h2 {
+            margin: 0 0 10px 0;
+            color: var(--text-color);
+        }
+        #dropZone p {
             margin: 0;
-        }
-        #drop-zone .upload-icon {
-            font-size: 3rem;
-            color: var(--primary-color);
-            margin-bottom: 1rem;
-        }
-        #error-message {
-            color: var(--error-color);
-            font-weight: 500;
-            margin-top: 1rem;
-            min-height: 1.2em;
+            color: var(--text-light);
         }
 
-        /* --- State 2: Processing --- */
-        #processing-zone h2 {
-            font-size: 1.5rem;
-            color: var(--dark-gray);
-            margin-bottom: 2rem;
+        /* --- Processing State --- */
+        #processingState h2 {
+            margin-top: 0;
         }
-        .loader {
-            width: 50px;
-            height: 50px;
-            border: 5px solid var(--light-gray);
-            border-top-color: var(--primary-color);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 1.5rem auto;
-        }
-        .progress-bar-container {
-            background: var(--light-gray);
-            border-radius: 99px;
-            overflow: hidden;
+        #progress-bar-container {
+            width: 100%;
             height: 12px;
-            margin-bottom: 1rem;
+            background-color: #e9ecef;
+            border-radius: 6px;
+            overflow: hidden;
+            margin: 25px 0;
         }
         #progress-bar {
             width: 0%;
             height: 100%;
-            background: var(--primary-color);
-            border-radius: 99px;
-            transition: width 0.3s ease;
+            background-color: var(--primary-accent);
+            transition: width 0.4s ease;
         }
-        #progress-text, .time-stats {
-            color: #6b7280;
-            font-weight: 500;
+        #progress-text {
+            font-weight: bold;
+            color: var(--primary-accent);
         }
-        .time-stats {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.9rem;
-            margin-top: 0.5rem;
+        #time-stats {
+            margin-top: 15px;
+            color: var(--text-light);
+            font-size: 0.9em;
         }
-
-        /* --- State 3: Completed --- */
-        #completed-zone h2 {
-            font-size: 1.75rem;
-            color: var(--secondary-color);
-            margin: 0 0 1rem 0;
+        
+        /* --- Completed State --- */
+        #completedState h2 {
+            color: var(--success-color);
+            margin-top: 0;
         }
-        #gif-preview {
+        #gifPreview {
             max-width: 100%;
-            max-height: 250px;
+            max-height: 300px;
+            height: auto;
             border-radius: 8px;
-            border: 2px solid var(--medium-gray);
-            margin-bottom: 1rem;
+            margin: 20px 0;
+            border: 1px solid var(--border-color);
         }
         .stats-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
+            gap: 15px;
             text-align: left;
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
         }
-        .stat-item h3 {
-            font-size: 0.9rem;
-            color: #6b7280;
-            margin: 0 0 0.25rem 0;
-            font-weight: 500;
+        .stats-grid div strong {
+            display: block;
+            color: var(--text-color);
+            margin-bottom: 4px;
         }
-        .stat-item p {
-            font-size: 1.1rem;
-            color: var(--dark-gray);
-            margin: 0;
-            font-weight: 600;
+        .stats-grid div span {
+            color: var(--text-light);
         }
         .button-group {
             display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 25px;
         }
+        
+        /* --- General Elements (Buttons, etc.) --- */
         .btn {
-            padding: 0.75rem 1rem;
+            padding: 12px 25px;
             border: none;
             border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 600;
             cursor: pointer;
-            transition: background-color 0.2s ease, transform 0.1s ease;
+            font-size: 16px;
+            font-weight: 600;
+            transition: background-color 0.3s ease, transform 0.1s ease;
         }
         .btn:active {
             transform: scale(0.98);
         }
         .btn-primary {
-            background-color: var(--primary-color);
+            background-color: var(--primary-accent);
             color: white;
         }
         .btn-primary:hover {
-            background-color: var(--primary-hover);
+            background-color: var(--primary-accent-dark);
         }
         .btn-secondary {
-            background-color: var(--light-gray);
-            color: var(--dark-gray);
+            background-color: #e9ecef;
+            color: var(--text-color);
         }
         .btn-secondary:hover {
-            background-color: var(--medium-gray);
+            background-color: #d8dde2;
+        }
+        .error-message {
+            color: var(--error-color);
+            margin-top: 15px;
+            font-weight: bold;
+        }
+        input[type="file"] {
+            display: none;
         }
         
-        /* --- Settings Icon & Modal --- */
-        #settings-button {
+        /* --- Settings Modal --- */
+        #settingsBtn {
             position: absolute;
-            top: 1.25rem;
-            right: 1.25rem;
-            font-size: 1.5rem;
+            top: 20px;
+            right: 20px;
+            background: none;
+            border: none;
+            font-size: 28px;
             cursor: pointer;
-            color: #9ca3af;
-            transition: color 0.2s ease, transform 0.3s ease;
-            z-index: 100;
+            color: var(--text-light);
+            transition: color 0.3s ease, transform 0.3s ease;
+            z-index: 1001;
         }
-        #settings-button:hover {
-            color: var(--dark-gray);
+        #settingsBtn:hover {
+            color: var(--primary-accent);
             transform: rotate(45deg);
         }
-        
-        #settings-modal {
-            display: none;
+        #settingsModal {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 999;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
             align-items: center;
             justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0s 0.3s;
+            z-index: 1000;
         }
-        #settings-modal.visible {
-            display: flex;
+        #settingsModal.visible {
+            opacity: 1;
+            visibility: visible;
+            transition: opacity 0.3s ease;
         }
-        .modal-content {
-            background: var(--bg-color);
-            padding: 2rem;
-            border-radius: 12px;
+        .settings-content {
+            background: var(--container-background);
+            padding: 30px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
             width: 90%;
-            max-width: 400px;
-            animation: fadeIn 0.3s ease-out;
-            position: relative;
+            max-width: 450px;
         }
-        .modal-content h2 {
-            margin: 0 0 1.5rem 0;
-            color: var(--dark-gray);
+        .settings-content h2 {
+            margin-top: 0;
             text-align: center;
         }
         .setting-group {
-            margin-bottom: 1.5rem;
-            text-align: left;
+            margin-bottom: 20px;
         }
         .setting-group label {
             display: block;
-            font-weight: 500;
-            margin-bottom: 0.5rem;
+            margin-bottom: 8px;
+            font-weight: 600;
         }
         .slider-group {
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 15px;
         }
-        input[type="range"] {
-            -webkit-appearance: none;
-            appearance: none;
+        .slider-group input[type="range"] {
+            flex-grow: 1;
             width: 100%;
-            height: 8px;
-            background: var(--light-gray);
-            border-radius: 5px;
-            outline: none;
         }
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 20px;
-            height: 20px;
-            background: var(--primary-color);
-            cursor: pointer;
-            border-radius: 50%;
+        .info-note {
+            font-size: 0.85em;
+            color: var(--text-light);
+            margin-top: 8px;
         }
-        input[type="range"]::-moz-range-thumb {
-            width: 20px;
-            height: 20px;
-            background: var(--primary-color);
-            cursor: pointer;
-            border-radius: 50%;
-            border: none;
-        }
-        .setting-group select, .setting-group input[type="number"] {
+        .settings-content input, .settings-content select {
             width: 100%;
-            padding: 0.5rem;
-            border: 1px solid var(--medium-gray);
-            border-radius: 6px;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-sizing: border-box;
         }
-        .modal-close-btn {
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
-            font-size: 1.5rem;
-            line-height: 1;
-            border: none;
-            background: none;
-            cursor: pointer;
-            color: #9ca3af;
-        }
-        .modal-close-btn:hover {
-            color: var(--dark-gray);
+        #customMaxWidthInput {
+            margin-top: 10px;
         }
 
-        /* Hidden elements for processing */
-        #hidden-processing-elements {
-            display: none;
-        }
     </style>
 </head>
 <body>
-    <div id="app-container">
-        <!-- State 1: Drop Zone -->
-        <div id="drop-zone" class="state-container active">
-            <div class="upload-icon">📤</div>
-            <h1>MP4 to GIF Converter</h1>
-            <p>Drag & drop a video file here or click to select</p>
-            <input type="file" id="videoFile" accept="video/*" hidden>
-            <p id="error-message"></p>
+    <div class="main-container">
+        <!-- Settings Button -->
+        <button id="settingsBtn" title="Settings">⚙️</button>
+
+        <!-- STATE 1: Initial Drop Zone -->
+        <div id="initialState" class="ui-state">
+            <input type="file" id="videoFile" accept="video/*">
+            <div id="dropZone">
+                <div class="drop-icon">🎬</div>
+                <h2>Drag & Drop Video File</h2>
+                <p>or <a>click here</a> to select a file</p>
+                <p class="info-note" style="margin-top: 15px;">Converts MP4, WebM, etc. to GIF right in your browser.</p>
+            </div>
+            <p id="initialError" class="error-message"></p>
         </div>
 
-        <!-- State 2: Processing -->
-        <div id="processing-zone" class="state-container">
+        <!-- STATE 2: Processing -->
+        <div id="processingState" class="ui-state hidden">
             <h2>Converting to GIF...</h2>
-            <div class="loader"></div>
             <p id="progress-text">Initializing...</p>
-            <div class="progress-bar-container">
+            <div id="progress-bar-container">
                 <div id="progress-bar"></div>
             </div>
-            <div class="time-stats">
-                <span id="time-elapsed">Elapsed: 00:00</span>
-                <span id="time-eta">ETA: --:--</span>
+            <div id="time-stats">
+                <span>Time Elapsed: 00:00</span> | <span>Est. Remaining: calculating...</span>
             </div>
         </div>
-        
-        <!-- State 3: Completed -->
-        <div id="completed-zone" class="state-container">
+
+        <!-- STATE 3: Completed -->
+        <div id="completedState" class="ui-state hidden">
             <h2>Conversion Complete!</h2>
-            <img id="gif-preview" alt="Generated GIF Preview">
+            <img id="gifPreview" alt="Generated GIF Preview">
             <div class="stats-grid">
-                <div class="stat-item">
-                    <h3>File Size</h3>
-                    <p id="stat-file-size">-- MB</p>
+                <div>
+                    <strong>File Size</strong>
+                    <span id="fileSizeStat">-- MB</span>
                 </div>
-                <div class="stat-item">
-                    <h3>Time Taken</h3>
-                    <p id="stat-time-taken">--s</p>
+                <div>
+                    <strong>Conversion Time</strong>
+                    <span id="conversionTimeStat">-- seconds</span>
                 </div>
             </div>
             <div class="button-group">
-                <a id="gif-download-link" class="btn btn-primary" download="converted.gif">Download GIF</a>
-                <button id="convert-another-btn" class="btn btn-secondary">Convert Another File</button>
+                <button id="resetBtn" class="btn btn-secondary">Convert Another</button>
+                <a id="gifDownloadLink" class="btn btn-primary" download="converted.gif">Download GIF</a>
             </div>
         </div>
-        
-        <!-- Settings Button -->
-        <div id="settings-button" title="Settings">⚙️</div>
     </div>
 
     <!-- Settings Modal -->
-    <div id="settings-modal">
-        <div class="modal-content">
-            <button class="modal-close-btn" id="modal-close-btn">×</button>
+    <div id="settingsModal">
+        <div class="settings-content">
             <h2>Conversion Settings</h2>
             
             <div class="setting-group">
                 <label for="qualityInput">Quality (1-30): <span id="qualityValue">10</span></label>
                 <div class="slider-group">
+                    <span>High</span>
                     <input type="range" id="qualityInput" value="10" min="1" max="30">
+                    <span>Low</span>
                 </div>
-                 <p style="font-size: 0.8rem; color: #6b7280; margin-top: 0.5rem;">Lower = better quality, larger file. Higher = smaller file.</p>
+                <p class="info-note">Lower number = higher quality & bigger file size.</p>
             </div>
-
+            
             <div class="setting-group">
-                <label for="fpsInput">Frames Per Second (FPS): <span id="fpsValue">8</span></label>
+                <label for="fpsInput">Frames Per Second (FPS): <span id="fpsValue">10</span></label>
                 <div class="slider-group">
-                    <input type="range" id="fpsInput" value="8" min="1" max="30">
+                    <input type="range" id="fpsInput" value="10" min="1" max="30">
                 </div>
+                <p class="info-note">Higher FPS = smoother animation & bigger file size.</p>
             </div>
 
             <div class="setting-group">
-                <label for="maxWidthPreset">Max Width (pixels):</label>
+                <label for="maxWidthPreset">Max Width</label>
                 <select id="maxWidthPreset">
                     <option value="0">Original Width</option>
                     <option value="240" selected>Small (240px)</option>
                     <option value="320">Medium (320px)</option>
                     <option value="480">Large (480px)</option>
                     <option value="640">X-Large (640px)</option>
+                    <option value="custom">Custom</option>
                 </select>
+                <input type="number" id="customMaxWidthInput" value="240" min="0" placeholder="Enter custom width" style="display: none;">
+                <p class="info-note">Scales the GIF proportionally.</p>
             </div>
+
+            <button id="closeSettingsBtn" class="btn btn-primary" style="width: 100%; margin-top: 10px;">Done</button>
         </div>
     </div>
 
     <!-- Hidden elements for processing -->
-    <div id="hidden-processing-elements">
-        <video id="videoPlayer" muted></video>
-        <canvas id="videoCanvas"></canvas>
-    </div>
+    <video id="videoPlayer" style="display:none;" muted playsinline></video>
+    <canvas id="videoCanvas" style="display:none;"></canvas>
 
-    <!-- GIF.js library -->
+    <!-- GIF.js library (ensure these files are in the same directory) -->
     <script src="gif.js"></script>
+
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // --- DOM Elements ---
-            const appContainer = document.getElementById('app-container');
-            const dropZone = document.getElementById('drop-zone');
             const videoFile = document.getElementById('videoFile');
-            const errorMessage = document.getElementById('error-message');
-            
-            const stateContainers = {
-                drop: document.getElementById('drop-zone'),
-                processing: document.getElementById('processing-zone'),
-                completed: document.getElementById('completed-zone')
-            };
+            const dropZone = document.getElementById('dropZone');
+            const initialError = document.getElementById('initialError');
 
-            // Processing UI
+            const initialState = document.getElementById('initialState');
+            const processingState = document.getElementById('processingState');
+            const completedState = document.getElementById('completedState');
+
             const progressBar = document.getElementById('progress-bar');
             const progressText = document.getElementById('progress-text');
-            const timeElapsedEl = document.getElementById('time-elapsed');
-            const timeEtaEl = document.getElementById('time-eta');
-            
-            // Completed UI
-            const gifPreview = document.getElementById('gif-preview');
-            const statFileSize = document.getElementById('stat-file-size');
-            const statTimeTaken = document.getElementById('stat-time-taken');
-            const downloadLink = document.getElementById('gif-download-link');
-            const convertAnotherBtn = document.getElementById('convert-another-btn');
+            const timeStats = document.getElementById('time-stats');
 
-            // Settings Modal
-            const settingsBtn = document.getElementById('settings-button');
-            const settingsModal = document.getElementById('settings-modal');
-            const modalCloseBtn = document.getElementById('modal-close-btn');
+            const gifPreview = document.getElementById('gifPreview');
+            const fileSizeStat = document.getElementById('fileSizeStat');
+            const conversionTimeStat = document.getElementById('conversionTimeStat');
+            const gifDownloadLink = document.getElementById('gifDownloadLink');
+            const resetBtn = document.getElementById('resetBtn');
 
-            // Settings Inputs
-            const qualityInput = document.getElementById('qualityInput');
-            const qualityValue = document.getElementById('qualityValue');
-            const fpsInput = document.getElementById('fpsInput');
-            const fpsValue = document.getElementById('fpsValue');
-            const maxWidthPreset = document.getElementById('maxWidthPreset');
-
-            // Hidden Processing Elements
             const videoPlayer = document.getElementById('videoPlayer');
             const videoCanvas = document.getElementById('videoCanvas');
             const ctx = videoCanvas.getContext('2d');
+            
+            // --- Settings Elements ---
+            const settingsBtn = document.getElementById('settingsBtn');
+            const settingsModal = document.getElementById('settingsModal');
+            const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+            const qualityInput = document.getElementById('qualityInput');
+            const qualityValueSpan = document.getElementById('qualityValue');
+            const fpsInput = document.getElementById('fpsInput');
+            const fpsValueSpan = document.getElementById('fpsValue');
+            const maxWidthPreset = document.getElementById('maxWidthPreset');
+            const customMaxWidthInput = document.getElementById('customMaxWidthInput');
 
-            let timerInterval = null;
+            let videoObjectURL = null;
 
-            // --- State Management ---
-            function showState(state) {
-                Object.values(stateContainers).forEach(el => el.classList.remove('active'));
-                if (stateContainers[state]) {
-                    stateContainers[state].classList.add('active');
+            // --- UI State Management ---
+            function showState(stateName) {
+                initialState.classList.add('hidden');
+                processingState.classList.add('hidden');
+                completedState.classList.add('hidden');
+                document.getElementById(stateName).classList.remove('hidden');
+            }
+
+            function resetUI() {
+                showState('initialState');
+                initialError.textContent = '';
+                videoFile.value = ''; // Clear file input
+                if (videoObjectURL) {
+                    URL.revokeObjectURL(videoObjectURL);
+                    videoObjectURL = null;
                 }
-                settingsBtn.style.display = (state === 'drop') ? 'block' : 'none';
+                videoPlayer.src = '';
+                gifPreview.src = '';
+                URL.revokeObjectURL(gifDownloadLink.href);
+                gifDownloadLink.removeAttribute('href');
+                settingsBtn.style.display = 'block';
             }
 
             // --- Helper Functions ---
-            function formatTime(seconds) {
-                const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
-                const secs = Math.floor(seconds % 60).toString().padStart(2, '0');
-                return `${mins}:${secs}`;
-            }
-
-            function formatBytes(bytes, decimals = 2) {
+            const formatTime = (ms) => {
+                const seconds = Math.floor(ms / 1000) % 60;
+                const minutes = Math.floor(ms / (1000 * 60));
+                return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            };
+            
+            const formatBytes = (bytes, decimals = 2) => {
                 if (bytes === 0) return '0 Bytes';
                 const k = 1024;
                 const dm = decimals < 0 ? 0 : decimals;
-                const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
                 const i = Math.floor(Math.log(bytes) / Math.log(k));
                 return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
-            }
-            
-            function resetApp() {
-                videoFile.value = ''; // Clear file input
-                errorMessage.textContent = '';
-                if(timerInterval) clearInterval(timerInterval);
-                showState('drop');
-            }
-            
-            // --- Event Listeners ---
+            };
 
-            // Drop Zone
+            // --- Event Listeners ---
+            
+            // Drag and Drop
             dropZone.addEventListener('click', () => videoFile.click());
             dropZone.addEventListener('dragover', (e) => {
                 e.preventDefault();
                 dropZone.classList.add('drag-over');
             });
-            dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('drag-over');
+            });
             dropZone.addEventListener('drop', (e) => {
                 e.preventDefault();
                 dropZone.classList.remove('drag-over');
                 const file = e.dataTransfer.files[0];
                 handleFile(file);
             });
-            videoFile.addEventListener('change', (e) => handleFile(e.target.files[0]));
             
-            // Settings
-            settingsBtn.addEventListener('click', () => settingsModal.classList.add('visible'));
-            modalCloseBtn.addEventListener('click', () => settingsModal.classList.remove('visible'));
-            settingsModal.addEventListener('click', (e) => {
-                if(e.target === settingsModal) settingsModal.classList.remove('visible');
+            // File Input Change
+            videoFile.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                handleFile(file);
             });
 
-            qualityInput.addEventListener('input', () => qualityValue.textContent = qualityInput.value);
-            fpsInput.addEventListener('input', () => fpsValue.textContent = fpsInput.value);
-
-            // Completed Screen
-            convertAnotherBtn.addEventListener('click', resetApp);
-            
-            // --- Main Logic ---
-            function handleFile(file) {
-                if (!file) return;
-
-                if (!file.type.startsWith('video/')) {
-                    errorMessage.textContent = 'Invalid file type. Please select a video.';
-                    return;
+            // Settings Modal
+            settingsBtn.addEventListener('click', () => settingsModal.classList.add('visible'));
+            closeSettingsBtn.addEventListener('click', () => settingsModal.classList.remove('visible'));
+            settingsModal.addEventListener('click', (e) => {
+                if (e.target === settingsModal) {
+                    settingsModal.classList.remove('visible');
                 }
-                
-                startConversion(file);
+            });
+
+            // Settings Inputs
+            qualityInput.addEventListener('input', () => qualityValueSpan.textContent = qualityInput.value);
+            fpsInput.addEventListener('input', () => fpsValueSpan.textContent = fpsInput.value);
+            maxWidthPreset.addEventListener('change', () => {
+                if (maxWidthPreset.value === 'custom') {
+                    customMaxWidthInput.style.display = 'block';
+                    customMaxWidthInput.disabled = false;
+                    customMaxWidthInput.focus();
+                } else {
+                    customMaxWidthInput.style.display = 'none';
+                    customMaxWidthInput.disabled = true;
+                }
+            });
+
+            // Reset Button
+            resetBtn.addEventListener('click', resetUI);
+            
+            // --- Core Logic ---
+            
+            function handleFile(file) {
+                if (file && file.type.startsWith('video/')) {
+                    initialError.textContent = '';
+                    videoObjectURL = URL.createObjectURL(file);
+                    startConversion(videoObjectURL, file.name);
+                } else {
+                    initialError.textContent = 'Invalid file. Please select a video file.';
+                }
             }
 
-            async function startConversion(file) {
-                showState('processing');
+            async function startConversion(videoSrc, originalFileName) {
+                showState('processingState');
+                settingsBtn.style.display = 'none'; // Hide settings during conversion
                 
-                let startTime = Date.now();
-                let videoObjectURL = null;
-
-                // Start timer
-                timerInterval = setInterval(() => {
-                    const elapsed = (Date.now() - startTime) / 1000;
-                    timeElapsedEl.textContent = `Elapsed: ${formatTime(elapsed)}`;
-                }, 1000);
+                let conversionStartTime;
 
                 try {
-                    videoObjectURL = URL.createObjectURL(file);
-                    videoPlayer.src = videoObjectURL;
-
-                    // 1. Load video metadata
-                    progressText.textContent = 'Loading video metadata...';
+                    videoPlayer.src = videoSrc;
+                    
+                    // 1. Load Video Metadata
                     await new Promise((resolve, reject) => {
                         videoPlayer.addEventListener('loadedmetadata', resolve, { once: true });
                         videoPlayer.addEventListener('error', (e) => reject(new Error('Failed to load video metadata.')), { once: true });
@@ -546,28 +517,28 @@
                     const duration = videoPlayer.duration;
                     const videoWidth = videoPlayer.videoWidth;
                     const videoHeight = videoPlayer.videoHeight;
-                    
-                    // 2. Get settings and calculate dimensions
+
+                    // 2. Get Settings
                     const desiredFPS = parseInt(fpsInput.value);
                     const quality = parseInt(qualityInput.value);
-                    let maxWidth = parseInt(maxWidthPreset.value);
-
+                    let maxWidth = (maxWidthPreset.value === 'custom') ? parseInt(customMaxWidthInput.value) : parseInt(maxWidthPreset.value);
+                    
+                    // 3. Calculate Dimensions
                     let outputWidth = videoWidth;
                     let outputHeight = videoHeight;
                     if (maxWidth > 0 && videoWidth > maxWidth) {
                         outputWidth = maxWidth;
-                        outputHeight = (videoHeight / videoWidth) * outputWidth;
+                        outputHeight = Math.round((videoHeight / videoWidth) * outputWidth);
                     }
                     outputWidth = Math.round(outputWidth / 2) * 2;
                     outputHeight = Math.round(outputHeight / 2) * 2;
-                    
                     videoCanvas.width = outputWidth;
                     videoCanvas.height = outputHeight;
-                    
-                    const frameDelay = 1000 / desiredFPS;
-                    const totalFrames = Math.max(1, Math.floor(duration * desiredFPS));
 
-                    // 3. Initialize GIF.js
+                    const frameDelay = 1000 / desiredFPS;
+                    const totalFrames = Math.floor(duration * desiredFPS);
+
+                    // 4. Initialize GIF.js
                     const gif = new GIF({
                         workers: 2,
                         quality: quality,
@@ -575,74 +546,71 @@
                         width: outputWidth,
                         height: outputHeight,
                     });
-
-                    // 4. Capture frames
+                    
                     let processedFrames = 0;
                     
-                    const captureFrame = async (time) => {
+                    gif.on('finished', (blob) => {
+                        const conversionEndTime = Date.now();
+                        const totalTime = conversionEndTime - conversionStartTime;
+
+                        const gifURL = URL.createObjectURL(blob);
+                        gifPreview.src = gifURL;
+                        gifDownloadLink.href = gifURL;
+                        gifDownloadLink.download = `${originalFileName.split('.').slice(0, -1).join('.')}.gif`;
+
+                        fileSizeStat.textContent = formatBytes(blob.size);
+                        conversionTimeStat.textContent = `${(totalTime / 1000).toFixed(2)} seconds`;
+                        
+                        showState('completedState');
+                    });
+                    
+                    gif.on('progress', (p) => {
+                        // The frame capture progress is more intuitive, so we can ignore this one.
+                    });
+
+                    // 5. Capture Frames
+                    conversionStartTime = Date.now();
+                    videoPlayer.currentTime = 0;
+
+                    const captureFrame = async (now, metadata) => {
                         if (videoPlayer.currentTime >= duration) {
                             gif.render();
                             return;
                         }
-
+                        
+                        // Draw frame and add to GIF
                         ctx.drawImage(videoPlayer, 0, 0, outputWidth, outputHeight);
                         gif.addFrame(videoCanvas, { delay: frameDelay, copy: true });
-                        
                         processedFrames++;
-                        const progress = processedFrames / totalFrames;
-                        progressBar.style.width = `${progress * 100}%`;
-                        progressText.textContent = `Capturing frames: ${processedFrames} / ${totalFrames}`;
+                        
+                        // Update UI
+                        const progress = Math.min(100, (processedFrames / totalFrames) * 100);
+                        progressBar.style.width = `${progress}%`;
+                        progressText.textContent = `Processing frame ${processedFrames} of ~${totalFrames}`;
+                        
+                        const elapsedTime = Date.now() - conversionStartTime;
+                        const timePerFrame = elapsedTime / processedFrames;
+                        const estimatedRemainingTime = (totalFrames - processedFrames) * timePerFrame;
 
-                        // ETA Calculation
-                        if(processedFrames > 5) { // Wait for a few frames for a stable average
-                            const elapsed = (Date.now() - startTime) / 1000;
-                            const timePerFrame = elapsed / processedFrames;
-                            const remainingFrames = totalFrames - processedFrames;
-                            const eta = timePerFrame * remainingFrames;
-                            timeEtaEl.textContent = `ETA: ${formatTime(eta)}`;
-                        }
+                        timeStats.innerHTML = `<span>Time Elapsed: ${formatTime(elapsedTime)}</span> | <span>Est. Remaining: ${processedFrames > 5 ? formatTime(estimatedRemainingTime) : 'calculating...'}</span>`;
 
-                        // Seek to the next frame
+                        // Seek to next frame
                         videoPlayer.currentTime = Math.min(duration, videoPlayer.currentTime + (1 / desiredFPS));
+                        
+                        videoPlayer.requestVideoFrameCallback(captureFrame);
                     };
 
-                    videoPlayer.addEventListener('seeked', () => requestAnimationFrame(captureFrame), { once: true });
-                    videoPlayer.currentTime = 0; // Start the process
-                    
-                    // 5. Handle GIF finishing
-                    await new Promise((resolve, reject) => {
-                        gif.on('finished', (blob) => {
-                            if(timerInterval) clearInterval(timerInterval);
-                            const totalTime = (Date.now() - startTime) / 1000;
-                            
-                            const gifURL = URL.createObjectURL(blob);
-                            gifPreview.src = gifURL;
-                            downloadLink.href = gifURL;
-                            downloadLink.download = `${file.name.split('.').slice(0, -1).join('.')}.gif`;
-                            
-                            statFileSize.textContent = formatBytes(blob.size);
-                            statTimeTaken.textContent = `${totalTime.toFixed(1)}s`;
-
-                            showState('completed');
-                            resolve();
-                        });
-                        gif.on('error', reject);
-                    });
+                    videoPlayer.requestVideoFrameCallback(captureFrame);
 
                 } catch (err) {
-                    console.error("Conversion failed:", err);
-                    errorMessage.textContent = `Error: ${err.message}. Please try another file.`;
-                    resetApp();
-                } finally {
-                    if (videoObjectURL) {
-                        URL.revokeObjectURL(videoObjectURL);
-                    }
-                    if(timerInterval) clearInterval(timerInterval);
+                    console.error('Conversion Error:', err);
+                    resetUI();
+                    initialError.textContent = `An error occurred: ${err.message}`;
                 }
             }
             
-            // Initial setup
-            resetApp();
+            // Initial call to set the UI
+            resetUI();
         });
     </script>
 </body>
