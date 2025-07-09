@@ -3,620 +3,664 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MP4 to GIF Converter</title>
+    <title>Simple File Processor</title>
+    <!-- Google Fonts: Inter for general text, IBM Plex Mono for code-like elements/accents -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
     <style>
+        /* CSS Variables for a consistent, professional dark theme */
+        :root {
+            --font-primary: 'Inter', sans-serif;
+            --font-mono: 'IBM Plex Mono', monospace;
+
+            --color-bg-dark: #0F1626; /* Deep, muted blue-black */
+            --color-bg-medium: #1F2C41; /* Slightly lighter, for main containers */
+            --color-bg-light: #2A384F; /* For cards, offering contrast */
+            --color-text-primary: #E0E7EB; /* Soft off-white */
+            --color-text-secondary: #ABB8C3; /* Muted grey-blue */
+            --color-accent: #00BFFF; /* A vibrant, professional sky blue */
+            --color-accent-hover: #0099CC; /* Darker blue for hover */
+            --color-border: rgba(255, 255, 255, 0.08); /* Very subtle border color */
+            --shadow-color: rgba(0, 0, 0, 0.4); /* General shadow color */
+        }
+
+        /* Basic Reset & Font Smoothing */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
         body {
-            font-family: Arial, sans-serif;
+            font-family: var(--font-primary);
+            background-color: var(--color-bg-dark);
+            color: var(--color-text-primary);
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
             min-height: 100vh;
-            margin: 0;
-            background-color: #f4f4f4;
-            color: #333;
-        }
-        .container {
-            background-color: #fff;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            max-width: 600px;
-            width: 90%;
-        }
-        h1 {
-            color: #0056b3;
-            margin-bottom: 20px;
-        }
-        p {
-            margin-bottom: 25px;
-            color: #555;
-        }
-        input[type="file"] {
-            display: none; /* Hide default input */
-        }
-        .custom-file-upload {
-            border: 2px solid #007bff;
-            display: inline-block;
-            padding: 10px 20px;
-            cursor: pointer;
-            border-radius: 5px;
-            background-color: #007bff;
-            color: white;
-            transition: background-color 0.3s ease, border-color 0.3s ease;
-            margin-bottom: 20px;
-        }
-        .custom-file-upload:hover {
-            background-color: #0056b3;
-            border-color: #0056b3;
-        }
-        button {
-            background-color: #28a745;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: background-color 0.3s ease;
-            margin-top: 15px;
-        }
-        button:hover:not(:disabled) {
-            background-color: #218838;
-        }
-        button:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
-        #status, #error {
-            margin-top: 20px;
-            font-weight: bold;
-            color: #007bff;
-        }
-        #error {
-            color: #dc3545;
-        }
-        #gifDownloadLink {
-            display: block;
-            margin-top: 20px;
-            font-size: 1.1em;
-            color: #007bff;
-            text-decoration: none;
-        }
-        #gifDownloadLink:hover {
-            text-decoration: underline;
-        }
-        #videoPreview {
-            max-width: 100%;
-            height: auto;
-            border-radius: 8px;
-            margin-top: 20px;
-            display: none; /* Hidden by default */
-        }
-        .settings {
-            margin-top: 20px;
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            background-color: #f9f9f9;
-            text-align: left;
-        }
-        .settings label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: bold;
-            color: #444;
-        }
-        /* Styling for number and range inputs - adjusting width and padding */
-        .settings input[type="number"],
-        .settings input[type="range"],
-        .settings select { /* Added select */
-            width: calc(100% - 20px); /* Full width minus padding */
-            padding: 8px 10px;
-            margin-bottom: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-        .info-note {
-            font-size: 0.9em;
-            color: #777;
-            margin-top: 10px;
-            line-height: 1.4;
+            padding: 20px;
+            line-height: 1.4; /* Adjusted for narrow width */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow-x: hidden;
+            position: relative;
+            font-size: 0.9rem; /* Default smaller font for narrow layout */
         }
 
-        /* Styles for Advanced Settings */
-        .advanced-toggle {
-            cursor: pointer;
-            font-weight: bold;
-            color: #007bff;
-            margin-top: 20px;
-            padding-bottom: 5px;
-            border-bottom: 1px dashed #007bff;
-            display: inline-block;
+        /* Subtle Radial Gradient on background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(0, 191, 255, 0.02) 0%, transparent 70%);
+            z-index: -1;
+            pointer-events: none;
         }
-        .advanced-toggle:hover {
-            text-decoration: underline;
-        }
-        .advanced-content {
-            display: none; /* Hidden by default */
-            margin-top: 15px;
-            padding: 10px;
-            border: 1px dashed #ccc;
-            border-radius: 5px;
-            background-color: #f0f8ff;
-        }
-        .advanced-content .setting-group {
-            margin-bottom: 15px;
-        }
-        .advanced-content .setting-group:last-child {
-            margin-bottom: 0;
-        }
-        .slider-group {
+
+        /* Main Content Wrapper - Limited to 240px */
+        .container {
+            width: 100%;
+            max-width: 240px; /* Enforced narrow width */
+            margin: auto;
             display: flex;
+            flex-direction: column;
+            gap: 20px; /* Reduced gap */
+            position: relative;
+            z-index: 1;
+            background-color: var(--color-bg-medium);
+            border-radius: 12px;
+            padding: 15px; /* Reduced padding */
+            box-shadow: 0 5px 15px var(--shadow-color);
+            border: 1px solid var(--color-border);
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
             align-items: center;
-            gap: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--color-border);
+            margin-bottom: 10px;
         }
-        .slider-group input[type="range"] {
-            flex-grow: 1;
-            margin-bottom: 0;
+
+        header h1 {
+            font-family: var(--font-mono);
+            font-size: 1.3rem;
+            color: var(--color-accent);
+            letter-spacing: 0.02em;
         }
-        .slider-group span {
-            min-width: 30px;
-            text-align: right;
-            font-weight: normal;
+
+        #settings-btn {
+            background: none;
+            border: none;
+            color: var(--color-text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: color 0.3s ease, transform 0.2s ease;
+            padding: 5px;
+            line-height: 1;
         }
-        /* Specific style for custom max width input */
-        #customMaxWidthInput {
-            margin-top: 5px; /* Small separation from dropdown */
+
+        #settings-btn:hover {
+            color: var(--color-accent);
+            transform: rotate(15deg);
+        }
+
+        /* Main Sections */
+        .drop-area, .processing-area, .completed-area {
+            background-color: var(--color-bg-light);
+            border: 1px dashed var(--color-border);
+            border-radius: 8px;
+            padding: 15px 10px;
+            text-align: center;
+            color: var(--color-text-secondary);
+            transition: background-color 0.2s ease, border-color 0.2s ease;
+            font-size: 0.85rem;
+        }
+
+        .drop-area:hover {
+            background-color: rgba(0, 191, 255, 0.05);
+            border-color: var(--color-accent);
+            cursor: pointer;
+        }
+
+        .drop-area.hover {
+            background-color: rgba(0, 191, 255, 0.1);
+            border-color: var(--color-accent);
+        }
+
+        /* File Item Styling for processing and completed states */
+        .file-item {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            text-align: left;
+            padding: 5px; /* Compact padding */
+            border-bottom: 1px solid var(--color-border);
+            margin-bottom: 10px;
+            background-color: var(--color-bg-dark); /* Darker background for file item */
+            border-radius: 6px;
+            border: 1px solid var(--color-border);
+        }
+
+        .file-item .file-name {
+            font-family: var(--font-mono);
+            color: var(--color-accent);
+            font-size: 0.9rem; /* Slightly larger for name */
+            word-break: break-all; /* Ensure long names wrap */
+            padding: 5px;
+        }
+
+        .file-item .status {
+            font-weight: 500;
+            color: var(--color-text-primary);
+            padding: 0 5px;
+        }
+        .file-item .status.processing { color: var(--color-accent); }
+        .file-item .status.completed { color: #5CB85C; } /* Green for completed */
+
+        .info-line {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: var(--color-text-secondary);
+            padding: 0 5px;
+        }
+        .info-line span {
+            font-family: var(--font-mono);
+            color: var(--color-text-primary);
+        }
+
+        .progress-bar-container {
+            width: calc(100% - 10px); /* Account for padding */
+            height: 6px;
+            background-color: var(--color-bg-medium);
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 5px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background-color: var(--color-accent);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        /* Buttons */
+        .button {
+            display: block; /* Make buttons block level to fill width */
+            width: 100%;
+            padding: 8px 12px; /* Compact padding */
+            margin-top: 10px;
+            background-color: var(--color-accent);
+            color: var(--color-bg-dark);
+            text-decoration: none;
+            border-radius: 6px;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .button:hover {
+            background-color: var(--color-accent-hover);
+            transform: translateY(-1px);
+        }
+
+        .cancel-button {
+            background-color: #dc3545; /* Red for cancel */
+        }
+        .cancel-button:hover {
+            background-color: #c82333;
+        }
+
+        .reset-button {
+            background-color: var(--color-bg-light);
+            color: var(--color-text-primary);
+            border: 1px solid var(--color-accent);
+        }
+        .reset-button:hover {
+            background-color: var(--color-accent);
+            color: var(--color-bg-dark);
+        }
+
+        .download-button {
+            background-color: #28a745; /* Green for download */
+        }
+        .download-button:hover {
+            background-color: #218838;
+        }
+
+        /* Settings Modal */
+        .settings-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .settings-modal.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .settings-content {
+            background-color: var(--color-bg-light);
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 200px; /* Max width for settings content */
+            width: 100%;
+            box-shadow: 0 5px 20px var(--shadow-color);
+            border: 1px solid var(--color-border);
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .settings-content h3 {
+            font-family: var(--font-mono);
+            color: var(--color-accent);
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            border-bottom: 1px solid var(--color-border);
+            padding-bottom: 5px;
+        }
+
+        .settings-content label {
+            color: var(--color-text-primary);
+            font-size: 0.9rem;
+            display: block; /* Ensure label is on its own line */
+            margin-bottom: 5px;
+        }
+
+        .settings-content select {
+            width: 100%;
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid var(--color-border);
+            background-color: var(--color-bg-dark);
+            color: var(--color-text-primary);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            appearance: none; /* Remove default arrow */
+            background-image: url('data:image/svg+xml;utf8,<svg fill="%23ABB8C3" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>');
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+            background-size: 16px;
+        }
+
+        .settings-content select:focus {
+            outline: none;
+            border-color: var(--color-accent);
+        }
+
+        .setting-hint {
+            font-size: 0.75rem;
+            color: var(--color-text-secondary);
+            margin-top: -10px; /* Bring closer to select */
+        }
+
+        #close-settings-btn {
+            margin-top: 15px;
+            background-color: var(--color-text-secondary);
+            color: var(--color-bg-dark);
+        }
+        #close-settings-btn:hover {
+            background-color: var(--color-accent);
+        }
+
+        /* Utility classes */
+        .hidden {
+            display: none;
+        }
+
+        /* Footer */
+        .site-footer {
+            margin-top: 20px; /* Reduced margin */
+            text-align: center;
+            padding: 15px 10px; /* Reduced padding */
+            color: var(--color-text-secondary);
+            font-size: 0.75rem; /* Smaller font */
+            width: 100%;
+            max-width: 240px; /* Match container width */
+            border-top: 1px solid var(--color-border);
+            background-color: var(--color-bg-medium);
+            border-radius: 0 0 12px 12px; /* Match container bottom radius */
+            box-shadow: 0 -3px 10px var(--shadow-color);
+        }
+
+        /* Responsive Adjustments (minimal given fixed max-width) */
+        @media (max-width: 300px) {
+            body {
+                padding: 10px;
+            }
+            .container, .site-footer {
+                max-width: calc(100% - 20px); /* Allow it to shrink slightly on very small screens */
+            }
+            header h1 {
+                font-size: 1.1rem;
+            }
+            #settings-btn {
+                font-size: 1.3rem;
+            }
+            .drop-area, .file-item, .settings-content {
+                padding: 10px;
+                font-size: 0.8rem;
+            }
+            .file-item .file-name {
+                font-size: 0.85rem;
+            }
+            .button {
+                padding: 6px 10px;
+                font-size: 0.8rem;
+            }
+            .settings-content select {
+                padding: 6px;
+                font-size: 0.8rem;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🎞️ MP4 to GIF Converter 🔄</h1>
-        <p>Select a video file (MP4, WebM, etc.) and convert it to an animated GIF directly in your browser. No uploads needed!</p>
+        <header>
+            <h1>File Processor</h1>
+            <button id="settings-btn">⚙️</button>
+        </header>
 
-        <label for="videoFile" class="custom-file-upload">
-            Choose Video File
-        </label>
-        <input type="file" id="videoFile" accept="video/*">
-        <span id="fileName">No file chosen</span>
-
-        <video id="videoPreview" controls></video>
-
-        <div class="settings">
-            <!-- Quality Slider -->
-            <label for="qualityInput">Quality (1-30): <span id="qualityValue">10</span></label>
-            <div class="slider-group">
-                <input type="range" id="qualityInput" value="10" min="1" max="30">
+        <main>
+            <!-- Initial State: Drop/Browse Area -->
+            <div id="drop-area" class="drop-area">
+                <p>Drop file here or click to browse</p>
+                <input type="file" id="file-input" accept="*/*" hidden>
             </div>
-            <p class="info-note">A lower number (e.g., 1-5) results in more colors and better visual detail, but a larger file size. A higher number (e.g., 20-30) means fewer colors and lower visual detail, but a smaller file size.</p>
 
-            <!-- Advanced Settings Toggle -->
-            <div class="advanced-toggle" id="advancedToggle">
-                Advanced Settings <span id="toggleArrow">▼</span>
-            </div>
-            <!-- Advanced Settings Content (initially hidden) -->
-            <div class="advanced-content" id="advancedContent">
-                <div class="setting-group">
-                    <label for="fpsInput">Frames Per Second (FPS): <span id="fpsValue">8</span></label>
-                    <div class="slider-group">
-                        <input type="range" id="fpsInput" value="8" min="1" max="30">
+            <!-- Processing State -->
+            <div id="processing-area" class="processing-area hidden">
+                <div class="file-item">
+                    <span class="file-name">Processing...</span>
+                    <span class="status processing">Processing</span>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" style="width: 0%;"></div>
                     </div>
-                    <p class="info-note">Higher FPS means smoother animation but larger file size.</p>
+                    <div class="info-line">Running: <span class="running-time">0s</span></div>
+                    <div class="info-line">Estimate: <span class="estimated-time">--</span></div>
+                    <div class="info-line">Avg Time: <span class="avg-time">--</span></div>
                 </div>
-                <div class="setting-group">
-                    <label for="maxWidthPreset">Max Width (pixels):</label>
-                    <select id="maxWidthPreset">
-                        <option value="0">Original Width</option>
-                        <option value="240">Small (240px)</option>
-                        <option value="320">Medium (320px)</option>
-                        <option value="480" selected>Large (480px)</option>
-                        <option value="640">X-Large (640px)</option>
-                        <option value="custom">Custom</option>
-                    </select>
-                    <input type="number" id="customMaxWidthInput" value="480" min="0" placeholder="Enter custom width" style="display: none;">
-                    <p class="info-note">Sets the maximum width of the GIF. Video will be scaled proportionally. Use 'Original Width' for the video's original width, or 'Custom' to enter a specific value.</p>
-                </div>
+                <button id="cancel-btn" class="button cancel-button">Cancel Processing</button>
             </div>
 
-            <div class="info-note">
-                <p><strong>Important:</strong> Conversion happens in your browser. Large videos or high quality settings may take a long time or cause browser issues.</p>
+            <!-- Completed State -->
+            <div id="completed-area" class="completed-area hidden">
+                <div class="file-item completed">
+                    <span class="file-name">File Name</span>
+                    <span class="status completed">Completed!</span>
+                    <div class="info-line">Size: <span class="file-size">--</span></div>
+                    <div class="info-line">Time: <span class="time-taken">--</span></div>
+                    <div class="info-line">Avg Time: <span class="avg-time">--</span></div>
+                    <a id="download-link" class="button download-button" download="processed_file.dat" href="#">Download Processed File</a>
+                </div>
+                <button id="reset-btn" class="button reset-button">Process Another File</button>
             </div>
-        </div>
-
-        <button id="convertBtn" disabled>Convert to GIF</button>
-
-        <p id="status"></p>
-        <p id="error"></p>
-        <a id="gifDownloadLink" style="display:none;">Download GIF</a>
-
-        <!-- Hidden elements for processing -->
-        <video id="videoPlayer" style="display:none;" muted></video>
-        <canvas id="videoCanvas" style="display:none;"></canvas>
+        </main>
     </div>
 
-    <!-- GIF.js library -->
-    <script src="gif.js"></script>
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="settings-modal hidden">
+        <div class="settings-content">
+            <h3>Settings</h3>
+            <label for="quality-select">Processing Quality:</label>
+            <select id="quality-select">
+                <option value="low">Low (Fast)</option>
+                <option value="medium" selected>Medium (Default)</option>
+                <option value="high">High (Slow)</option>
+            </select>
+            <p class="setting-hint">Higher quality settings result in longer processing times.</p>
+            <button id="close-settings-btn" class="button">Close</button>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <p>© <span id="current-year"></span> Simple File Processor</p>
+    </footer>
 
     <script>
-        // --- DOM Elements ---
-        const videoFile = document.getElementById('videoFile');
-        const fileNameSpan = document.getElementById('fileName');
-        const videoPreview = document.getElementById('videoPreview');
-        const convertBtn = document.getElementById('convertBtn');
-        const statusP = document.getElementById('status');
-        const errorP = document.getElementById('error');
-        const gifDownloadLink = document.getElementById('gifDownloadLink');
+        const dropArea = document.getElementById('drop-area');
+        const fileInput = document.getElementById('file-input');
+        const processingArea = document.getElementById('processing-area');
+        const completedArea = document.getElementById('completed-area');
+        const settingsBtn = document.getElementById('settings-btn');
+        const settingsModal = document.getElementById('settings-modal');
+        const closeSettingsBtn = document.getElementById('close-settings-btn');
+        const qualitySelect = document.getElementById('quality-select');
+        const cancelBtn = document.getElementById('cancel-btn');
+        const resetBtn = document.getElementById('reset-btn');
 
-        const videoPlayer = document.getElementById('videoPlayer'); // Hidden video for processing
-        const videoCanvas = document.getElementById('videoCanvas'); // Hidden canvas for drawing frames
-        const ctx = videoCanvas.getContext('2d');
+        // Processing UI elements
+        const fileNameSpan = processingArea.querySelector('.file-name');
+        const statusSpan = processingArea.querySelector('.status');
+        const progressBar = processingArea.querySelector('.progress-bar');
+        const runningTimeSpan = processingArea.querySelector('.running-time');
+        const estimatedTimeSpan = processingArea.querySelector('.estimated-time');
+        const avgTimeSpan = processingArea.querySelector('.avg-time');
 
-        // Settings inputs
-        const fpsInput = document.getElementById('fpsInput');
-        const fpsValueSpan = document.getElementById('fpsValue'); // For displaying FPS slider value
-        const qualityInput = document.getElementById('qualityInput');
-        const qualityValueSpan = document.getElementById('qualityValue'); // For displaying quality slider value
-        
-        // Max Width elements
-        const maxWidthPreset = document.getElementById('maxWidthPreset'); // Dropdown
-        const customMaxWidthInput = document.getElementById('customMaxWidthInput'); // Custom number input
+        // Completed UI elements
+        const completedFileNameSpan = completedArea.querySelector('.file-name');
+        const completedFileSizeSpan = completedArea.querySelector('.file-size');
+        const completedTimeTakenSpan = completedArea.querySelector('.time-taken');
+        const completedAvgTimeSpan = completedArea.querySelector('.avg-time');
+        const downloadLink = document.getElementById('download-link');
 
-        // Advanced settings elements
-        const advancedToggle = document.getElementById('advancedToggle');
-        const advancedContent = document.getElementById('advancedContent');
-        const toggleArrow = document.getElementById('toggleArrow');
+        let processingInterval;
+        let processingStartTime;
+        let totalProcessedTime = 0; // Sum of all completed processing times
+        let processedFilesCount = 0; // Number of files processed
 
-        let videoObjectURL = null; // To store the URL created for the selected video file
-        let originalFileName = ''; // To store the original file name for GIF naming
+        // Load quality setting and average time from localStorage
+        const savedQuality = localStorage.getItem('processingQuality');
+        if (savedQuality) {
+            qualitySelect.value = savedQuality;
+        }
+        const savedAvgTime = localStorage.getItem('averageProcessingTime');
+        const savedCount = localStorage.getItem('processedFilesCount');
+        if (savedAvgTime && savedCount) {
+            totalProcessedTime = parseFloat(savedAvgTime) * parseInt(savedCount);
+            processedFilesCount = parseInt(savedCount);
+            updateAverageTimeDisplay();
+        }
 
-        // --- Helper Function for UI Reset ---
-        // This function fully resets the UI state, as if no file was selected yet.
-        // It's called on initial load, when a new file is chosen, or on error.
+        function showSection(section) {
+            dropArea.classList.add('hidden');
+            processingArea.classList.add('hidden');
+            completedArea.classList.add('hidden');
+            section.classList.remove('hidden');
+        }
+
+        function updateAverageTimeDisplay() {
+            if (processedFilesCount > 0) {
+                const avgTime = totalProcessedTime / processedFilesCount;
+                avgTimeSpan.textContent = formatDuration(avgTime);
+                completedAvgTimeSpan.textContent = formatDuration(avgTime);
+            } else {
+                avgTimeSpan.textContent = '--';
+                completedAvgTimeSpan.textContent = '--';
+            }
+        }
+
+        function formatBytes(bytes, decimals = 2) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
+
+        function formatDuration(ms) {
+            const seconds = Math.floor(ms / 1000);
+            if (seconds < 60) return `${seconds}s`;
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            return `${minutes}m ${remainingSeconds}s`;
+        }
+
+        function getProcessingDuration(fileSize) {
+            // Simulate processing time based on quality and file size
+            let baseDurationMs = 2000; // 2 seconds for a small file
+            const sizeFactor = Math.log(fileSize + 1) / Math.log(1024 * 1024); // Logarithmic scaling for size
+
+            const quality = qualitySelect.value;
+            let qualityFactor = 1;
+            if (quality === 'low') qualityFactor = 0.5;
+            else if (quality === 'high') qualityFactor = 2;
+
+            // Total duration: base + (size * factor) * quality
+            let duration = baseDurationMs + (sizeFactor * 5000 * qualityFactor);
+            return Math.max(1000, duration); // Minimum 1 second
+        }
+
+        function processFile(file) {
+            showSection(processingArea);
+            fileNameSpan.textContent = file.name;
+            statusSpan.textContent = 'Processing';
+            statusSpan.classList.remove('completed');
+            statusSpan.classList.add('processing');
+            progressBar.style.width = '0%';
+            runningTimeSpan.textContent = '0s';
+            estimatedTimeSpan.textContent = '--';
+
+            const totalDuration = getProcessingDuration(file.size);
+            let elapsed = 0;
+            processingStartTime = Date.now();
+
+            // Update average time display from the start
+            updateAverageTimeDisplay();
+
+            processingInterval = setInterval(() => {
+                elapsed = Date.now() - processingStartTime;
+                const progress = Math.min(elapsed / totalDuration, 1);
+
+                runningTimeSpan.textContent = formatDuration(elapsed);
+                progressBar.style.width = `${progress * 100}%`;
+
+                if (elapsed < totalDuration) {
+                    const remaining = totalDuration - elapsed;
+                    estimatedTimeSpan.textContent = formatDuration(remaining);
+                } else {
+                    clearInterval(processingInterval);
+                    onProcessingComplete(file, elapsed);
+                }
+            }, 100); // Update every 100ms for smooth progress bar
+        }
+
+        function onProcessingComplete(file, timeTaken) {
+            showSection(completedArea);
+            completedFileNameSpan.textContent = file.name;
+            completedFileSizeSpan.textContent = formatBytes(file.size);
+            completedTimeTakenSpan.textContent = formatDuration(timeTaken);
+
+            // Update total and count for average
+            totalProcessedTime += timeTaken;
+            processedFilesCount++;
+            localStorage.setItem('averageProcessingTime', (totalProcessedTime / processedFilesCount).toString());
+            localStorage.setItem('processedFilesCount', processedFilesCount.toString());
+            updateAverageTimeDisplay();
+
+            // Simulate processed file content for download
+            const processedContent = `This is the processed content of ${file.name}.\nOriginal size: ${formatBytes(file.size)}\nProcessed in: ${formatDuration(timeTaken)}\nQuality: ${qualitySelect.value}`;
+            const blob = new Blob([processedContent], { type: 'text/plain' });
+            downloadLink.href = URL.createObjectURL(blob);
+            downloadLink.download = `processed_${file.name.split('.').slice(0, -1).join('.') || 'file'}.txt`; // Give a .txt extension
+        }
+
+        function cancelProcessing() {
+            clearInterval(processingInterval);
+            alert('Processing cancelled.');
+            resetUI();
+        }
+
         function resetUI() {
-            convertBtn.disabled = true;
-            videoFile.disabled = false;
-            
-            // Re-enable all settings and advanced toggle
-            fpsInput.disabled = false;
-            qualityInput.disabled = false;
-            maxWidthPreset.disabled = false; 
-            advancedToggle.style.pointerEvents = 'auto'; 
-
-            // Hide and disable custom maxWidth input by default
-            customMaxWidthInput.disabled = true; 
-            customMaxWidthInput.style.display = 'none'; 
-
-            statusP.textContent = '';
-            errorP.textContent = '';
-            gifDownloadLink.style.display = 'none';
-            gifDownloadLink.removeAttribute('href');
-            gifDownloadLink.textContent = 'Download GIF'; 
-
-            // Reset slider value displays and input values
-            fpsInput.value = "8"; // Default FPS
-            fpsValueSpan.textContent = fpsInput.value;
-            qualityInput.value = "10"; // Default Quality
-            qualityValueSpan.textContent = qualityInput.value;
-            maxWidthPreset.value = "480"; // Default Max Width preset
-            customMaxWidthInput.value = "480"; // Default custom value (even if hidden)
-
-            if (videoObjectURL) {
-                URL.revokeObjectURL(videoObjectURL); // Clean up previous object URL to free memory
-                videoObjectURL = null;
-            }
-            videoPlayer.src = ''; // Clear source for hidden player
-            videoPreview.src = ''; // Clear source for preview player
-            videoPreview.style.display = 'none'; // Hide video preview
-            fileNameSpan.textContent = 'No file chosen'; // Reset file name display
-            originalFileName = ''; // Clear original file name
+            clearInterval(processingInterval);
+            showSection(dropArea);
+            progressBar.style.width = '0%';
+            runningTimeSpan.textContent = '0s';
+            estimatedTimeSpan.textContent = '--';
+            fileInput.value = ''; // Clear file input
         }
 
-        // --- Helper Function for Random String ---
-        function generateRandomString(length) {
-            const characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
-            let result = '';
-            for (let i = 0; i < length; i++) {
-                result += characters.charAt(Math.floor(Math.random() * characters.length));
-            }
-            return result;
-        }
-
-        // --- Event Listeners ---
-
-        videoFile.addEventListener('change', (event) => {
-            const file = event.target.files[0];
-            console.log('File selected:', file); // Debug: Log selected file
-
-            resetUI(); // Fully reset UI on new file selection
-
-            if (file) {
-                if (file.type.startsWith('video/')) {
-                    fileNameSpan.textContent = file.name;
-                    originalFileName = file.name; // Store original file name
-                    videoObjectURL = URL.createObjectURL(file);
-                    videoPreview.src = videoObjectURL;
-                    videoPlayer.src = videoObjectURL; // Load into the hidden player for processing
-                    videoPreview.style.display = 'block'; // Show video preview
-                    convertBtn.disabled = false; // Enable convert button
-                    console.log('Video successfully loaded for preview and processing.'); // Debug
-                } else {
-                    fileNameSpan.textContent = 'Please select a video file.';
-                    errorP.textContent = 'Invalid file type. Please select a video (e.g., MP4, WebM).';
-                    console.error('Invalid file type selected:', file.type); // Debug
-                }
-            } else {
-                fileNameSpan.textContent = 'No file chosen';
-                console.log('No file chosen by user.'); // Debug
+        // Event Listeners
+        dropArea.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                processFile(e.target.files[0]);
             }
         });
 
-        // Update FPS slider value display
-        fpsInput.addEventListener('input', () => {
-            fpsValueSpan.textContent = fpsInput.value;
+        dropArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropArea.classList.add('hover');
         });
 
-        // Update quality slider value display
-        qualityInput.addEventListener('input', () => {
-            qualityValueSpan.textContent = qualityInput.value;
+        dropArea.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropArea.classList.remove('hover');
         });
 
-        // Handle Max Width preset changes
-        maxWidthPreset.addEventListener('change', () => {
-            if (maxWidthPreset.value === 'custom') {
-                customMaxWidthInput.style.display = 'block';
-                customMaxWidthInput.disabled = false;
-                customMaxWidthInput.focus(); // Focus on the custom input for immediate input
-            } else {
-                customMaxWidthInput.style.display = 'none';
-                customMaxWidthInput.disabled = true;
+        dropArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropArea.classList.remove('hover');
+            if (e.dataTransfer.files.length > 0) {
+                processFile(e.dataTransfer.files[0]);
             }
         });
 
-        // Toggle advanced settings visibility
-        advancedToggle.addEventListener('click', () => {
-            const isHidden = advancedContent.style.display === 'none' || advancedContent.style.display === '';
-            advancedContent.style.display = isHidden ? 'block' : 'none';
-            toggleArrow.textContent = isHidden ? '▲' : '▼'; // Change arrow direction
+        settingsBtn.addEventListener('click', () => {
+            settingsModal.classList.add('show');
         });
 
-
-        convertBtn.addEventListener('click', async () => {
-            if (!videoPlayer.src) {
-                errorP.textContent = 'Please select a video first.';
-                console.warn('Convert button clicked but no video source set.'); // Debug
-                return;
-            }
-
-            statusP.textContent = 'Loading video metadata...';
-            errorP.textContent = '';
-            gifDownloadLink.style.display = 'none'; // Hide download link during conversion
-            convertBtn.disabled = true; // Disable button to prevent multiple clicks
-            videoFile.disabled = true; // Disable file input during conversion
-
-            // Disable all settings during conversion
-            fpsInput.disabled = true;
-            qualityInput.disabled = true;
-            maxWidthPreset.disabled = true;
-            customMaxWidthInput.disabled = true; // Also disable custom input if visible
-            advancedToggle.style.pointerEvents = 'none'; // Disable toggle during conversion
-
-
-            try {
-                // --- Step 1: Ensure Video Metadata is Loaded ---
-                console.log('Attempting to load video metadata...'); // Debug
-                await new Promise((resolve, reject) => {
-                    if (videoPlayer.readyState >= 1) { // readyState > 0 means HAVE_NOTHING, 1=HAVE_METADATA, etc.
-                        console.log('Video metadata already loaded (readyState:', videoPlayer.readyState, ').'); // Debug
-                        resolve();
-                        return;
-                    }
-
-                    const onMetadataLoaded = () => {
-                        console.log('Video metadata loaded successfully.'); // Debug
-                        videoPlayer.removeEventListener('loadedmetadata', onMetadataLoaded);
-                        videoPlayer.removeEventListener('error', onError); // Clean up error listener too
-                        resolve();
-                    };
-
-                    const onError = (e) => {
-                        console.error('Error loading video metadata:', e); // Debug
-                        videoPlayer.removeEventListener('loadedmetadata', onMetadataLoaded);
-                        videoPlayer.removeEventListener('error', onError);
-                        reject(new Error('Failed to load video metadata. Please try another file.'));
-                    };
-
-                    videoPlayer.addEventListener('loadedmetadata', onMetadataLoaded);
-                    videoPlayer.addEventListener('error', onError);
-                    videoPlayer.load(); // Request video to load its metadata
-                });
-
-                const duration = videoPlayer.duration;
-                const videoWidth = videoPlayer.videoWidth;
-                const videoHeight = videoPlayer.videoHeight;
-
-                console.log(`Video metadata: Duration=${duration}s, Dimensions=${videoWidth}x${videoHeight}`); // Debug
-
-                // --- Step 2: Validate User Inputs ---
-                const desiredFPS = parseInt(fpsInput.value);
-                const quality = parseInt(qualityInput.value);
-                
-                let maxWidth;
-                const selectedPreset = maxWidthPreset.value;
-
-                if (selectedPreset === 'custom') {
-                    maxWidth = parseInt(customMaxWidthInput.value);
-                } else {
-                    maxWidth = parseInt(selectedPreset);
-                }
-
-
-                if (isNaN(desiredFPS) || desiredFPS < 1 || desiredFPS > 30) {
-                    throw new Error("Invalid FPS. Please enter a number between 1 and 30.");
-                }
-                if (isNaN(quality) || quality < 1 || quality > 30) {
-                    throw new Error("Invalid Quality. Please enter a number between 1 and 30.");
-                }
-                if (isNaN(maxWidth) || maxWidth < 0) {
-                     throw new Error("Invalid Max Width. Please enter a non-negative number.");
-                }
-
-                // --- Step 3: Calculate Output Dimensions ---
-                let outputWidth = videoWidth;
-                let outputHeight = videoHeight;
-
-                if (maxWidth > 0 && videoWidth > maxWidth) {
-                    outputWidth = maxWidth;
-                    outputHeight = (videoHeight / videoWidth) * outputWidth;
-                }
-
-                // Ensure dimensions are even numbers for better GIF compatibility
-                outputWidth = Math.round(outputWidth / 2) * 2;
-                outputHeight = Math.round(outputHeight / 2) * 2;
-
-                videoCanvas.width = outputWidth;
-                videoCanvas.height = outputHeight;
-
-                console.log(`GIF output dimensions: ${outputWidth}x${outputHeight}`); // Debug
-
-                const frameDelay = 1000 / desiredFPS; // milliseconds per frame
-                // Calculate total frames carefully. `duration` can be float.
-                const totalFrames = Math.max(1, Math.floor(duration * desiredFPS)); // Ensure at least 1 frame
-
-                console.log(`Calculated total frames to capture: ${totalFrames}`); // Debug
-
-                statusP.textContent = `Converting... (0/${totalFrames} frames processed)`;
-
-                // --- Step 4: Initialize GIF.js ---
-                const gif = new GIF({
-                    workers: 2, // Number of web workers to use for conversion
-                    quality: quality, // Lower is better quality, but larger file. 1-30.
-                    workerScript: 'gif.worker.js', // Path to the worker script. Make sure this is correct!
-                    width: outputWidth,
-                    height: outputHeight,
-                    background: '#ffffff' // Set a default background color for transparency if needed
-                });
-
-                gif.on('start', () => {
-                    statusP.textContent = `Starting GIF encoding...`;
-                    console.log('GIF encoding started.'); // Debug
-                });
-
-                let processedFrames = 0;
-                let currentTime = 0;
-
-                // --- Step 5: Capture Frames ---
-                const captureFrame = async () => {
-                    if (currentTime >= duration) {
-                        console.log('All frames captured, rendering GIF...'); // Debug
-                        gif.render();
-                        return;
-                    }
-
-                    videoPlayer.currentTime = currentTime;
-
-                    await new Promise(resolve => {
-                        // requestVideoFrameCallback is ideal for syncing with video frames
-                        videoPlayer.requestVideoFrameCallback(() => {
-                            ctx.drawImage(videoPlayer, 0, 0, outputWidth, outputHeight);
-                            gif.addFrame(videoCanvas, { delay: frameDelay, copy: true });
-                            processedFrames++;
-                            statusP.textContent = `Converting... (${processedFrames}/${totalFrames} frames processed)`;
-                            console.log(`Captured frame at ${videoPlayer.currentTime.toFixed(2)}s. Frames processed: ${processedFrames}/${totalFrames}`); // Debug
-                            resolve();
-                        });
-                    });
-
-                    currentTime += (1 / desiredFPS);
-                    // Use setTimeout with the calculated delay to ensure correct FPS,
-                    // or more accurately, to delay the *next* `requestVideoFrameCallback` call.
-                    setTimeout(() => requestAnimationFrame(captureFrame), frameDelay);
-                };
-
-                // Ensure video is seeked to the beginning before starting frame capture
-                await new Promise(resolve => {
-                    const onSeekedHandler = () => {
-                        console.log('Video seeked to 0s, starting frame capture.'); // Debug
-                        videoPlayer.removeEventListener('seeked', onSeekedHandler);
-                        requestAnimationFrame(captureFrame); // Start the loop
-                        resolve();
-                    };
-
-                    videoPlayer.addEventListener('seeked', onSeekedHandler);
-                    videoPlayer.currentTime = 0; // Trigger the seek
-                });
-
-
-                // --- Step 6: Handle GIF Encoding Events ---
-                gif.on('progress', (p) => {
-                    statusP.textContent = `Converting... GIF encoding progress: ${(p * 100).toFixed(1)}%`;
-                });
-
-                gif.on('finished', (blob) => {
-                    console.log('GIF encoding finished.'); // Debug
-
-                    // Generate a unique filename using random prefix + original name
-                    const randomPrefix = generateRandomString(4);
-                    // Get base name without extension, handle cases where there's no dot
-                    let baseName = originalFileName.substring(0, originalFileName.lastIndexOf('.')) || originalFileName;
-                    const gifFileName = `${randomPrefix}_${baseName}.gif`;
-
-
-                    const gifURL = URL.createObjectURL(blob);
-                    gifDownloadLink.href = gifURL;
-                    gifDownloadLink.download = gifFileName; // Set the new generated filename
-                    gifDownloadLink.textContent = `Download Converted GIF (${gifFileName})`; // Update text to show new name
-                    gifDownloadLink.style.display = 'block'; // Make the download link visible
-
-                    statusP.textContent = 'Conversion Complete! (Click "Download Converted GIF")'; // More descriptive status
-
-                    // Re-enable input fields and convert button
-                    convertBtn.disabled = false;
-                    videoFile.disabled = false;
-                    fpsInput.disabled = false;
-                    qualityInput.disabled = false;
-                    maxWidthPreset.disabled = false;
-                    // Only re-enable custom input if it was selected BEFORE conversion
-                    if (maxWidthPreset.value === 'custom') {
-                        customMaxWidthInput.disabled = false;
-                    }
-                    advancedToggle.style.pointerEvents = 'auto'; // Re-enable toggle
-
-                    // IMPORTANT: Clean up the videoObjectURL (source video) to free memory.
-                    // This is done here now, instead of implicitly via resetUI() when conversion is successful.
-                    if (videoObjectURL) {
-                        URL.revokeObjectURL(videoObjectURL);
-                        videoObjectURL = null;
-                        videoPlayer.src = ''; // Clear source for hidden player
-                        videoPreview.src = ''; // Clear source for preview player
-                        videoPreview.style.display = 'none'; // Hide video preview
-                        fileNameSpan.textContent = 'No file chosen'; // Reset file name display
-                        originalFileName = ''; // Clear original file name
-                    }
-
-                    console.log('GIF conversion complete. Download link created and source video resources cleaned up.'); // Debug
-                });
-
-                gif.on('error', (err) => {
-                    console.error('GIF.js Error:', err); // Debug: Log the error object
-                    errorP.textContent = `GIF Conversion Error: ${err.message || err}. Check console for details.`;
-                    statusP.textContent = '';
-                    resetUI(); // Full UI reset on error, including hiding download link
-                });
-
-            } catch (err) {
-                console.error('Main conversion process error:', err); // Debug: Log errors from the main async function
-                errorP.textContent = `An error occurred: ${err.message || err}. Check console for more details.`;
-                statusP.textContent = '';
-                resetUI(); // Full UI reset on error, including hiding download link
-            }
+        closeSettingsBtn.addEventListener('click', () => {
+            settingsModal.classList.remove('show');
         });
 
-        // Initial UI setup when the page loads
-        resetUI();
+        qualitySelect.addEventListener('change', () => {
+            localStorage.setItem('processingQuality', qualitySelect.value);
+        });
+
+        cancelBtn.addEventListener('click', cancelProcessing);
+        resetBtn.addEventListener('click', resetUI);
+
+        // Set current year in footer
+        document.getElementById('current-year').textContent = new Date().getFullYear();
+
+        // Initial UI state
+        showSection(dropArea);
     </script>
 </body>
 </html>
