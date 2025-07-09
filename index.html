@@ -167,6 +167,7 @@
     <script src="gif.js"></script>
 
     <script>
+        // --- DOM Elements ---
         const videoFile = document.getElementById('videoFile');
         const fileNameSpan = document.getElementById('fileName');
         const videoPreview = document.getElementById('videoPreview');
@@ -175,91 +176,135 @@
         const errorP = document.getElementById('error');
         const gifDownloadLink = document.getElementById('gifDownloadLink');
 
-        const videoPlayer = document.getElementById('videoPlayer');
-        const videoCanvas = document.getElementById('videoCanvas');
+        const videoPlayer = document.getElementById('videoPlayer'); // Hidden video for processing
+        const videoCanvas = document.getElementById('videoCanvas'); // Hidden canvas for drawing frames
         const ctx = videoCanvas.getContext('2d');
 
         const fpsInput = document.getElementById('fpsInput');
         const qualityInput = document.getElementById('qualityInput');
         const maxWidthInput = document.getElementById('maxWidthInput');
 
-        let videoObjectURL = null;
+        let videoObjectURL = null; // To store the URL created for the selected video file
+
+        // --- Helper Function for UI Reset ---
+        function resetUI() {
+            convertBtn.disabled = true;
+            videoFile.disabled = false;
+            fpsInput.disabled = false;
+            qualityInput.disabled = false;
+            maxWidthInput.disabled = false;
+            statusP.textContent = '';
+            errorP.textContent = '';
+            gifDownloadLink.style.display = 'none';
+            gifDownloadLink.removeAttribute('href');
+            gifDownloadLink.textContent = 'Download GIF';
+
+            if (videoObjectURL) {
+                URL.revokeObjectURL(videoObjectURL); // Clean up previous object URL to free memory
+                videoObjectURL = null;
+            }
+            videoPlayer.src = '';
+            videoPreview.src = '';
+            videoPreview.style.display = 'none';
+            fileNameSpan.textContent = 'No file chosen';
+        }
 
         // --- Event Listeners ---
 
         videoFile.addEventListener('change', (event) => {
             const file = event.target.files[0];
+            console.log('File selected:', file); // Debug: Log selected file
+
+            resetUI(); // Reset UI on new file selection
+
             if (file) {
                 if (file.type.startsWith('video/')) {
                     fileNameSpan.textContent = file.name;
-                    errorP.textContent = '';
-                    statusP.textContent = '';
-                    gifDownloadLink.style.display = 'none';
-                    gifDownloadLink.removeAttribute('href');
-
-                    if (videoObjectURL) {
-                        URL.revokeObjectURL(videoObjectURL); // Clean up previous object URL
-                    }
                     videoObjectURL = URL.createObjectURL(file);
                     videoPreview.src = videoObjectURL;
-                    videoPlayer.src = videoObjectURL; // Also load into the hidden player
+                    videoPlayer.src = videoObjectURL; // Load into the hidden player for processing
                     videoPreview.style.display = 'block';
                     convertBtn.disabled = false;
+                    console.log('Video successfully loaded for preview and processing.'); // Debug
                 } else {
                     fileNameSpan.textContent = 'Please select a video file.';
                     errorP.textContent = 'Invalid file type. Please select a video (e.g., MP4, WebM).';
-                    convertBtn.disabled = true;
-                    videoPreview.style.display = 'none';
+                    console.error('Invalid file type selected:', file.type); // Debug
                 }
             } else {
                 fileNameSpan.textContent = 'No file chosen';
-                convertBtn.disabled = true;
-                videoPreview.style.display = 'none';
+                console.log('No file chosen by user.'); // Debug
             }
         });
 
         convertBtn.addEventListener('click', async () => {
             if (!videoPlayer.src) {
                 errorP.textContent = 'Please select a video first.';
+                console.warn('Convert button clicked but no video source set.'); // Debug
                 return;
             }
 
             statusP.textContent = 'Loading video metadata...';
             errorP.textContent = '';
             gifDownloadLink.style.display = 'none';
-            convertBtn.disabled = true;
-            videoFile.disabled = true;
+            convertBtn.disabled = true; // Disable button to prevent multiple clicks
+            videoFile.disabled = true; // Disable file input during conversion
             fpsInput.disabled = true;
             qualityInput.disabled = true;
             maxWidthInput.disabled = true;
 
             try {
-                await new Promise(resolve => {
-                    videoPlayer.onloadedmetadata = () => {
+                // --- Step 1: Ensure Video Metadata is Loaded ---
+                console.log('Attempting to load video metadata...'); // Debug
+                await new Promise((resolve, reject) => {
+                    // If metadata is already loaded (readyState > 0 means HAVE_NOTHING, 1=HAVE_METADATA, etc.)
+                    if (videoPlayer.readyState >= 1) {
+                        console.log('Video metadata already loaded (readyState:', videoPlayer.readyState, ').'); // Debug
+                        resolve();
+                        return;
+                    }
+
+                    const onMetadataLoaded = () => {
+                        console.log('Video metadata loaded successfully.'); // Debug
+                        videoPlayer.removeEventListener('loadedmetadata', onMetadataLoaded);
+                        videoPlayer.removeEventListener('error', onError); // Clean up error listener too
                         resolve();
                     };
-                    // In case metadata is already loaded (e.g. user clicks convert again)
-                    if (videoPlayer.readyState >= 1) {
-                        resolve();
-                    }
-                    videoPlayer.load(); // Ensure metadata is loaded
+
+                    const onError = (e) => {
+                        console.error('Error loading video metadata:', e); // Debug
+                        videoPlayer.removeEventListener('loadedmetadata', onMetadataLoaded);
+                        videoPlayer.removeEventListener('error', onError);
+                        reject(new Error('Failed to load video metadata. Please try another file.'));
+                    };
+
+                    videoPlayer.addEventListener('loadedmetadata', onMetadataLoaded);
+                    videoPlayer.addEventListener('error', onError);
+                    videoPlayer.load(); // Request video to load its metadata
                 });
 
-                const duration = videoPlayer.duration; // in seconds
+                const duration = videoPlayer.duration;
                 const videoWidth = videoPlayer.videoWidth;
                 const videoHeight = videoPlayer.videoHeight;
 
+                console.log(`Video metadata: Duration=${duration}s, Dimensions=${videoWidth}x${videoHeight}`); // Debug
+
+                // --- Step 2: Validate User Inputs ---
                 const desiredFPS = parseInt(fpsInput.value);
                 const quality = parseInt(qualityInput.value);
                 let maxWidth = parseInt(maxWidthInput.value);
 
-                if (isNaN(desiredFPS) || desiredFPS < 1) {
-                    throw new Error("Invalid FPS. Please enter a number greater than 0.");
+                if (isNaN(desiredFPS) || desiredFPS < 1 || desiredFPS > 30) {
+                    throw new Error("Invalid FPS. Please enter a number between 1 and 30.");
                 }
-                 if (isNaN(quality) || quality < 1 || quality > 30) {
+                if (isNaN(quality) || quality < 1 || quality > 30) {
                     throw new Error("Invalid Quality. Please enter a number between 1 and 30.");
                 }
+                if (isNaN(maxWidth) || maxWidth < 0) {
+                     throw new Error("Invalid Max Width. Please enter a non-negative number.");
+                }
 
+                // --- Step 3: Calculate Output Dimensions ---
                 let outputWidth = videoWidth;
                 let outputHeight = videoHeight;
 
@@ -268,23 +313,28 @@
                     outputHeight = (videoHeight / videoWidth) * outputWidth;
                 }
 
-                // Ensure dimensions are even for GIF compatibility (good practice)
+                // Ensure dimensions are even numbers for better GIF compatibility
                 outputWidth = Math.round(outputWidth / 2) * 2;
                 outputHeight = Math.round(outputHeight / 2) * 2;
-
 
                 videoCanvas.width = outputWidth;
                 videoCanvas.height = outputHeight;
 
+                console.log(`GIF output dimensions: ${outputWidth}x${outputHeight}`); // Debug
+
                 const frameDelay = 1000 / desiredFPS; // milliseconds per frame
-                const totalFrames = Math.floor(duration * desiredFPS);
+                // Calculate total frames carefully. `duration` can be float.
+                const totalFrames = Math.max(1, Math.floor(duration * desiredFPS)); // Ensure at least 1 frame
+
+                console.log(`Calculated total frames to capture: ${totalFrames}`); // Debug
 
                 statusP.textContent = `Converting... (0/${totalFrames} frames processed)`;
 
+                // --- Step 4: Initialize GIF.js ---
                 const gif = new GIF({
                     workers: 2, // Number of web workers to use for conversion
                     quality: quality, // Lower is better quality, but larger file. 1-30.
-                    workerScript: 'gif.worker.js', // Path to the worker script
+                    workerScript: 'gif.worker.js', // Path to the worker script. Make sure this is correct!
                     width: outputWidth,
                     height: outputHeight,
                     background: '#ffffff' // Set a default background color for transparency if needed
@@ -292,13 +342,16 @@
 
                 gif.on('start', () => {
                     statusP.textContent = `Starting GIF encoding...`;
+                    console.log('GIF encoding started.'); // Debug
                 });
 
                 let processedFrames = 0;
                 let currentTime = 0;
 
+                // --- Step 5: Capture Frames ---
                 const captureFrame = async () => {
                     if (currentTime >= duration) {
+                        console.log('All frames captured, rendering GIF...'); // Debug
                         gif.render();
                         return;
                     }
@@ -306,93 +359,68 @@
                     videoPlayer.currentTime = currentTime;
 
                     await new Promise(resolve => {
+                        // requestVideoFrameCallback is ideal for syncing with video frames
                         videoPlayer.requestVideoFrameCallback(() => {
                             ctx.drawImage(videoPlayer, 0, 0, outputWidth, outputHeight);
                             gif.addFrame(videoCanvas, { delay: frameDelay, copy: true });
                             processedFrames++;
                             statusP.textContent = `Converting... (${processedFrames}/${totalFrames} frames processed)`;
+                            console.log(`Captured frame at ${videoPlayer.currentTime.toFixed(2)}s. Frames processed: ${processedFrames}/${totalFrames}`); // Debug
                             resolve();
                         });
                     });
 
                     currentTime += (1 / desiredFPS);
-                    requestAnimationFrame(captureFrame); // Use requestAnimationFrame for next frame
+                    // Use setTimeout with the calculated delay to ensure correct FPS
+                    setTimeout(() => requestAnimationFrame(captureFrame), frameDelay);
                 };
 
-                // Start the frame capture loop
+                // Ensure video is seeked to the beginning before starting frame capture
                 await new Promise(resolve => {
-                    videoPlayer.onseeked = () => { // Ensure video is seeked to 0 before starting
-                         requestAnimationFrame(captureFrame);
-                         resolve();
+                    videoPlayer.onseeked = () => {
+                        console.log('Video seeked to 0s, starting frame capture.'); // Debug
+                        videoPlayer.removeEventListener('seeked', arguments.callee); // Remove listener after first seek
+                        requestAnimationFrame(captureFrame); // Start the loop
+                        resolve();
                     };
-                    videoPlayer.currentTime = 0;
+                    videoPlayer.currentTime = 0; // Trigger the seek
                 });
 
 
+                // --- Step 6: Handle GIF Encoding Events ---
                 gif.on('progress', (p) => {
                     statusP.textContent = `Converting... GIF encoding progress: ${(p * 100).toFixed(1)}%`;
                 });
 
                 gif.on('finished', (blob) => {
+                    console.log('GIF encoding finished.'); // Debug
                     const gifURL = URL.createObjectURL(blob);
                     gifDownloadLink.href = gifURL;
                     gifDownloadLink.download = 'converted.gif';
                     gifDownloadLink.textContent = 'Download Converted GIF';
                     gifDownloadLink.style.display = 'block';
                     statusP.textContent = 'Conversion Complete!';
-                    convertBtn.disabled = false;
-                    videoFile.disabled = false;
-                    fpsInput.disabled = false;
-                    qualityInput.disabled = false;
-                    maxWidthInput.disabled = false;
-
-                    // Clean up object URLs
-                    if (videoObjectURL) {
-                        URL.revokeObjectURL(videoObjectURL);
-                        videoObjectURL = null;
-                        videoPlayer.src = '';
-                        videoPreview.src = '';
-                        videoPreview.style.display = 'none';
-                        fileNameSpan.textContent = 'No file chosen';
-                    }
+                    resetUI(); // Reset UI and clean up URLs
+                    console.log('GIF conversion complete. Download link created.'); // Debug
                 });
 
                 gif.on('error', (err) => {
-                    errorP.textContent = `GIF Conversion Error: ${err.message || err}`;
+                    console.error('GIF.js Error:', err); // Debug: Log the error object
+                    errorP.textContent = `GIF Conversion Error: ${err.message || err}. Check console for details.`;
                     statusP.textContent = '';
-                    convertBtn.disabled = false;
-                    videoFile.disabled = false;
-                    fpsInput.disabled = false;
-                    qualityInput.disabled = false;
-                    maxWidthInput.disabled = false;
-                     if (videoObjectURL) {
-                        URL.revokeObjectURL(videoObjectURL);
-                        videoObjectURL = null;
-                        videoPlayer.src = '';
-                        videoPreview.src = '';
-                        videoPreview.style.display = 'none';
-                        fileNameSpan.textContent = 'No file chosen';
-                    }
+                    resetUI(); // Reset UI and clean up URLs
                 });
 
             } catch (err) {
-                errorP.textContent = `An error occurred: ${err.message}`;
+                console.error('Main conversion process error:', err); // Debug: Log errors from the main async function
+                errorP.textContent = `An error occurred: ${err.message || err}. Check console for more details.`;
                 statusP.textContent = '';
-                convertBtn.disabled = false;
-                videoFile.disabled = false;
-                fpsInput.disabled = false;
-                qualityInput.disabled = false;
-                maxWidthInput.disabled = false;
-                 if (videoObjectURL) {
-                    URL.revokeObjectURL(videoObjectURL);
-                    videoObjectURL = null;
-                    videoPlayer.src = '';
-                    videoPreview.src = '';
-                    videoPreview.style.display = 'none';
-                    fileNameSpan.textContent = 'No file chosen';
-                }
+                resetUI(); // Reset UI and clean up URLs
             }
         });
+
+        // Initial UI setup
+        resetUI();
     </script>
 </body>
 </html>
