@@ -3,9 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simple File Processor</title>
+    <title>Video to GIF Converter - jlaiii</title>
     <!-- Google Fonts: Inter for general text, IBM Plex Mono for code-like elements/accents -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Include ffmpeg.wasm from CDN -->
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.7/dist/ffmpeg.min.js"></script>
+    <script src="https://unpkg.com/@ffmpeg/util@0.12.1/dist/util.min.js"></script>
 
     <style>
         /* CSS Variables for a consistent, professional dark theme */
@@ -43,13 +47,12 @@
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
-            padding: 20px;
-            line-height: 1.4; /* Adjusted for narrow width */
+            padding: 40px 20px;
+            line-height: 1.6;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
             overflow-x: hidden;
             position: relative;
-            font-size: 0.9rem; /* Default smaller font for narrow layout */
         }
 
         /* Subtle Radial Gradient on background */
@@ -65,602 +68,824 @@
             pointer-events: none;
         }
 
-        /* Main Content Wrapper - Limited to 240px */
-        .container {
+        /* Main App Container */
+        .app-container {
             width: 100%;
-            max-width: 240px; /* Enforced narrow width */
-            margin: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 20px; /* Reduced gap */
-            position: relative;
-            z-index: 1;
+            max-width: 800px; /* Adjusted max-width for the app */
             background-color: var(--color-bg-medium);
             border-radius: 12px;
-            padding: 15px; /* Reduced padding */
-            box-shadow: 0 5px 15px var(--shadow-color);
+            padding: 40px;
+            box-shadow: 0 15px 40px var(--shadow-color);
             border: 1px solid var(--color-border);
-        }
-
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-bottom: 10px;
-            border-bottom: 1px solid var(--color-border);
-            margin-bottom: 10px;
-        }
-
-        header h1 {
-            font-family: var(--font-mono);
-            font-size: 1.3rem;
-            color: var(--color-accent);
-            letter-spacing: 0.02em;
-        }
-
-        #settings-btn {
-            background: none;
-            border: none;
-            color: var(--color-text-secondary);
-            font-size: 1.5rem;
-            cursor: pointer;
-            transition: color 0.3s ease, transform 0.2s ease;
-            padding: 5px;
-            line-height: 1;
-        }
-
-        #settings-btn:hover {
-            color: var(--color-accent);
-            transform: rotate(15deg);
-        }
-
-        /* Main Sections */
-        .drop-area, .processing-area, .completed-area {
-            background-color: var(--color-bg-light);
-            border: 1px dashed var(--color-border);
-            border-radius: 8px;
-            padding: 15px 10px;
             text-align: center;
-            color: var(--color-text-secondary);
-            transition: background-color 0.2s ease, border-color 0.2s ease;
-            font-size: 0.85rem;
-        }
-
-        .drop-area:hover {
-            background-color: rgba(0, 191, 255, 0.05);
-            border-color: var(--color-accent);
-            cursor: pointer;
-        }
-
-        .drop-area.hover {
-            background-color: rgba(0, 191, 255, 0.1);
-            border-color: var(--color-accent);
-        }
-
-        /* File Item Styling for processing and completed states */
-        .file-item {
             display: flex;
             flex-direction: column;
-            gap: 8px;
-            text-align: left;
-            padding: 5px; /* Compact padding */
-            border-bottom: 1px solid var(--color-border);
-            margin-bottom: 10px;
-            background-color: var(--color-bg-dark); /* Darker background for file item */
-            border-radius: 6px;
-            border: 1px solid var(--color-border);
+            gap: 30px;
+            margin: auto; /* Center the container */
+            margin-top: 80px; /* Space from top */
         }
 
-        .file-item .file-name {
+        .app-header {
             font-family: var(--font-mono);
+            font-size: 3rem;
+            font-weight: 600;
             color: var(--color-accent);
-            font-size: 0.9rem; /* Slightly larger for name */
-            word-break: break-all; /* Ensure long names wrap */
-            padding: 5px;
+            margin-bottom: 20px;
+            letter-spacing: 0.05em;
+            text-shadow: 0 0 15px rgba(0, 191, 255, 0.4);
         }
 
-        .file-item .status {
-            font-weight: 500;
-            color: var(--color-text-primary);
-            padding: 0 5px;
-        }
-        .file-item .status.processing { color: var(--color-accent); }
-        .file-item .status.completed { color: #5CB85C; } /* Green for completed */
-
-        .info-line {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.8rem;
+        .app-subtitle {
+            font-size: 1.2rem;
             color: var(--color-text-secondary);
-            padding: 0 5px;
+            margin-bottom: 30px;
         }
-        .info-line span {
-            font-family: var(--font-mono);
+
+        /* File Input Area */
+        .file-input-area {
+            border: 2px dashed var(--color-accent);
+            border-radius: 10px;
+            padding: 30px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 150px;
+        }
+
+        .file-input-area:hover {
+            background-color: rgba(0, 191, 255, 0.05);
+            border-color: var(--color-accent-hover);
+        }
+
+        .file-input-area input[type="file"] {
+            display: none;
+        }
+
+        .upload-icon {
+            color: var(--color-accent);
+            width: 50px;
+            height: 50px;
+            margin-bottom: 15px;
+        }
+
+        .input-text {
+            font-size: 1.1rem;
             color: var(--color-text-primary);
+            font-weight: 500;
         }
 
-        .progress-bar-container {
-            width: calc(100% - 10px); /* Account for padding */
-            height: 6px;
-            background-color: var(--color-bg-medium);
-            border-radius: 3px;
+        .input-subtext {
+            font-size: 0.9rem;
+            color: var(--color-text-secondary);
+            margin-top: 5px;
+        }
+
+        /* Video Preview */
+        .video-preview {
+            background-color: var(--color-bg-dark);
+            border-radius: 8px;
+            border: 1px solid var(--color-border);
             overflow: hidden;
-            margin: 5px;
+            max-width: 100%;
+            margin: 0 auto;
+            display: none; /* Hidden by default */
         }
 
-        .progress-bar {
-            height: 100%;
-            width: 0%;
-            background-color: var(--color-accent);
-            border-radius: 3px;
-            transition: width 0.3s ease;
+        .video-preview.visible {
+            display: block;
         }
 
-        /* Buttons */
-        .button {
-            display: block; /* Make buttons block level to fill width */
+        .video-preview video {
             width: 100%;
-            padding: 8px 12px; /* Compact padding */
+            height: auto;
+            display: block;
+            border-radius: 8px;
+        }
+
+        /* Settings Toggle */
+        .settings-toggle-container {
+            text-align: center;
             margin-top: 10px;
+        }
+
+        .settings-toggle-button {
+            background-color: transparent;
+            border: 1px solid var(--color-border);
+            color: var(--color-text-secondary);
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-family: var(--font-mono);
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .settings-toggle-button:hover {
+            border-color: var(--color-accent);
+            color: var(--color-accent);
+            background-color: rgba(0, 191, 255, 0.05);
+        }
+
+        .settings-toggle-button svg {
+            width: 18px;
+            height: 18px;
+            transition: transform 0.3s ease;
+        }
+
+        .settings-toggle-button.active svg {
+            transform: rotate(180deg);
+        }
+
+        /* Settings Panel */
+        .settings-panel {
+            background-color: var(--color-bg-light);
+            border-radius: 8px;
+            padding: 25px;
+            margin-top: 20px;
+            border: 1px solid var(--color-border);
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.2);
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .settings-panel.visible {
+            display: flex;
+        }
+
+        .setting-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+        }
+
+        .setting-item {
+            flex: 1 1 calc(50% - 10px); /* Two items per row on larger screens */
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        @media (max-width: 600px) {
+            .setting-item {
+                flex: 1 1 100%; /* One item per row on smaller screens */
+            }
+        }
+
+
+        .setting-item label {
+            font-size: 0.9rem;
+            color: var(--color-text-secondary);
+            margin-bottom: 8px;
+            font-family: var(--font-mono);
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .setting-item input[type="number"],
+        .setting-item input[type="range"] {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            background-color: var(--color-bg-dark);
+            color: var(--color-text-primary);
+            font-family: var(--font-primary);
+            font-size: 1rem;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .setting-item input[type="number"]:focus,
+        .setting-item input[type="range"]:focus {
+            outline: none;
+            border-color: var(--color-accent);
+            box-shadow: 0 0 0 3px rgba(0, 191, 255, 0.2);
+        }
+
+        /* Range slider styling */
+        input[type="range"] {
+            -webkit-appearance: none;
+            height: 8px;
+            background: var(--color-border);
+            border-radius: 5px;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--color-accent);
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.2s ease;
+            margin-top: -6px; /* Center thumb on track */
+            border: 2px solid var(--color-bg-light); /* Make thumb pop */
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--color-accent);
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.2s ease;
+            border: 2px solid var(--color-bg-light);
+        }
+        input[type="range"]::-webkit-slider-thumb:hover,
+        input[type="range"]::-moz-range-thumb:hover {
+            background: var(--color-accent-hover);
+            transform: scale(1.1);
+        }
+
+        /* Convert Button */
+        .convert-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px 30px;
             background-color: var(--color-accent);
             color: var(--color-bg-dark);
             text-decoration: none;
-            border-radius: 6px;
+            border-radius: 8px;
             font-family: var(--font-mono);
-            font-size: 0.9rem;
+            font-size: 1.1rem;
             font-weight: 500;
+            letter-spacing: 0.05em;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 191, 255, 0.2);
             border: none;
             cursor: pointer;
-            transition: all 0.3s ease;
-            text-align: center;
+            width: 100%;
+            margin-top: 20px;
         }
 
-        .button:hover {
+        .convert-button:hover:not(:disabled) {
             background-color: var(--color-accent-hover);
-            transform: translateY(-1px);
+            transform: translateY(-3px) scale(1.005);
+            box-shadow: 0 8px 20px rgba(0, 191, 255, 0.3);
         }
 
-        .cancel-button {
-            background-color: #dc3545; /* Red for cancel */
+        .convert-button:disabled {
+            background-color: #556070;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+            opacity: 0.7;
         }
-        .cancel-button:hover {
-            background-color: #c82333;
+        
+        .convert-button .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid var(--color-bg-dark);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+            display: none;
         }
-
-        .reset-button {
-            background-color: var(--color-bg-light);
-            color: var(--color-text-primary);
-            border: 1px solid var(--color-accent);
+        .convert-button.loading .spinner {
+            display: inline-block;
         }
-        .reset-button:hover {
-            background-color: var(--color-accent);
-            color: var(--color-bg-dark);
+        .convert-button.loading span {
+            margin-left: 10px; /* Space for spinner */
         }
-
-        .download-button {
-            background-color: #28a745; /* Green for download */
-        }
-        .download-button:hover {
-            background-color: #218838;
-        }
-
-        /* Settings Modal */
-        .settings-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 200;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s ease, visibility 0.3s ease;
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
-        .settings-modal.show {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        .settings-content {
-            background-color: var(--color-bg-light);
+        /* Status and Results Area */
+        .status-area {
+            background-color: var(--color-bg-dark);
+            border-radius: 8px;
             padding: 20px;
-            border-radius: 10px;
-            max-width: 200px; /* Max width for settings content */
-            width: 100%;
-            box-shadow: 0 5px 20px var(--shadow-color);
+            margin-top: 20px;
             border: 1px solid var(--color-border);
             text-align: left;
+            font-family: var(--font-mono);
+            font-size: 0.95rem;
+            color: var(--color-text-secondary);
+            min-height: 100px;
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            word-break: break-all; /* For long messages */
         }
-
-        .settings-content h3 {
-            font-family: var(--font-mono);
-            color: var(--color-accent);
-            font-size: 1.2rem;
-            margin-bottom: 10px;
-            border-bottom: 1px solid var(--color-border);
-            padding-bottom: 5px;
-        }
-
-        .settings-content label {
-            color: var(--color-text-primary);
-            font-size: 0.9rem;
-            display: block; /* Ensure label is on its own line */
-            margin-bottom: 5px;
-        }
-
-        .settings-content select {
-            width: 100%;
-            padding: 8px;
-            border-radius: 5px;
-            border: 1px solid var(--color-border);
-            background-color: var(--color-bg-dark);
-            color: var(--color-text-primary);
-            font-family: var(--font-mono);
-            font-size: 0.9rem;
-            appearance: none; /* Remove default arrow */
-            background-image: url('data:image/svg+xml;utf8,<svg fill="%23ABB8C3" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>');
-            background-repeat: no-repeat;
-            background-position: right 8px center;
-            background-size: 16px;
-        }
-
-        .settings-content select:focus {
-            outline: none;
-            border-color: var(--color-accent);
-        }
-
-        .setting-hint {
-            font-size: 0.75rem;
+        .status-area p {
+            margin: 0;
             color: var(--color-text-secondary);
-            margin-top: -10px; /* Bring closer to select */
         }
 
-        #close-settings-btn {
+        .status-area .progress-bar-container {
+            width: 100%;
+            background-color: var(--color-border);
+            border-radius: 5px;
+            height: 10px;
             margin-top: 15px;
-            background-color: var(--color-text-secondary);
-            color: var(--color-bg-dark);
-        }
-        #close-settings-btn:hover {
-            background-color: var(--color-accent);
+            overflow: hidden;
         }
 
-        /* Utility classes */
-        .hidden {
-            display: none;
+        .status-area .progress-bar {
+            height: 100%;
+            width: 0%;
+            background-color: var(--color-accent);
+            border-radius: 5px;
+            transition: width 0.1s linear;
+        }
+
+        .conversion-stats {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .stat-item {
+            background-color: var(--color-bg-light);
+            border-radius: 8px;
+            padding: 15px 20px;
+            border: 1px solid var(--color-border);
+            box-shadow: 0 2px 8px var(--shadow-color);
+            text-align: center;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--color-accent);
+            margin-bottom: 5px;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--color-text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .download-link {
+            display: inline-flex;
+            align-items: center;
+            background-color: var(--color-accent);
+            color: var(--color-bg-dark);
+            text-decoration: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-family: var(--font-mono);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0, 191, 255, 0.3);
+            margin-top: 20px;
+        }
+
+        .download-link:hover {
+            background-color: var(--color-accent-hover);
+            transform: translateY(-2px) scale(1.01);
+            box-shadow: 0 6px 12px rgba(0, 191, 255, 0.4);
+        }
+
+        .download-link svg {
+            margin-right: 10px;
         }
 
         /* Footer */
         .site-footer {
-            margin-top: 20px; /* Reduced margin */
+            margin-top: 40px;
             text-align: center;
-            padding: 15px 10px; /* Reduced padding */
+            padding: 20px;
             color: var(--color-text-secondary);
-            font-size: 0.75rem; /* Smaller font */
+            font-size: 0.85rem;
             width: 100%;
-            max-width: 240px; /* Match container width */
-            border-top: 1px solid var(--color-border);
-            background-color: var(--color-bg-medium);
-            border-radius: 0 0 12px 12px; /* Match container bottom radius */
-            box-shadow: 0 -3px 10px var(--shadow-color);
+            max-width: 800px;
         }
 
-        /* Responsive Adjustments (minimal given fixed max-width) */
-        @media (max-width: 300px) {
+        /* Responsive Adjustments */
+        @media (max-width: 768px) {
             body {
-                padding: 10px;
+                padding: 20px 15px;
             }
-            .container, .site-footer {
-                max-width: calc(100% - 20px); /* Allow it to shrink slightly on very small screens */
+            .app-container {
+                padding: 30px;
             }
-            header h1 {
-                font-size: 1.1rem;
+            .app-header {
+                font-size: 2.5rem;
             }
-            #settings-btn {
-                font-size: 1.3rem;
+            .app-subtitle {
+                font-size: 1rem;
             }
-            .drop-area, .file-item, .settings-content {
-                padding: 10px;
-                font-size: 0.8rem;
+            .file-input-area {
+                padding: 20px;
             }
-            .file-item .file-name {
+            .input-text {
+                font-size: 1rem;
+            }
+            .input-subtext {
                 font-size: 0.85rem;
             }
-            .button {
-                padding: 6px 10px;
-                font-size: 0.8rem;
+            .convert-button {
+                padding: 12px 25px;
+                font-size: 1rem;
             }
-            .settings-content select {
-                padding: 6px;
-                font-size: 0.8rem;
+            .status-area {
+                padding: 15px;
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .app-container {
+                padding: 20px;
+                margin-top: 40px;
+                gap: 20px;
+            }
+            .app-header {
+                font-size: 2rem;
+            }
+            .app-subtitle {
+                font-size: 0.9rem;
+            }
+            .file-input-area {
+                min-height: 120px;
+            }
+            .upload-icon {
+                width: 40px;
+                height: 40px;
+            }
+            .setting-group {
+                flex-direction: column;
+            }
+            .setting-item {
+                width: 100%;
+            }
+            .stat-item {
+                min-width: 100px;
+                padding: 10px;
+            }
+            .stat-value {
+                font-size: 1.2rem;
+            }
+            .stat-label {
+                font-size: 0.75rem;
+            }
+            .download-link {
+                padding: 10px 20px;
+                font-size: 0.9rem;
             }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>File Processor</h1>
-            <button id="settings-btn">⚙️</button>
-        </header>
+    <div class="app-container">
+        <h1 class="app-header">Video to GIF</h1>
+        <p class="app-subtitle">Effortlessly convert your videos into high-quality GIFs.</p>
 
-        <main>
-            <!-- Initial State: Drop/Browse Area -->
-            <div id="drop-area" class="drop-area">
-                <p>Drop file here or click to browse</p>
-                <input type="file" id="file-input" accept="*/*" hidden>
-            </div>
+        <!-- File Input Area -->
+        <label for="video-upload" class="file-input-area" id="file-input-area">
+            <input type="file" id="video-upload" accept="video/*">
+            <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            <span class="input-text">Drag & drop a video or click to upload</span>
+            <span class="input-subtext">Supported formats: MP4, MOV, WEBM, etc. (max 500MB)</span>
+        </label>
 
-            <!-- Processing State -->
-            <div id="processing-area" class="processing-area hidden">
-                <div class="file-item">
-                    <span class="file-name">Processing...</span>
-                    <span class="status processing">Processing</span>
-                    <div class="progress-bar-container">
-                        <div class="progress-bar" style="width: 0%;"></div>
-                    </div>
-                    <div class="info-line">Running: <span class="running-time">0s</span></div>
-                    <div class="info-line">Estimate: <span class="estimated-time">--</span></div>
-                    <div class="info-line">Avg Time: <span class="avg-time">--</span></div>
+        <!-- Video Preview -->
+        <div class="video-preview" id="video-preview-container">
+            <video id="video-player" controls muted></video>
+        </div>
+
+        <!-- Settings Toggle -->
+        <div class="settings-toggle-container">
+            <button class="settings-toggle-button" id="settings-toggle">
+                Advanced Settings
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+        </div>
+
+        <!-- Settings Panel -->
+        <div class="settings-panel" id="settings-panel">
+            <div class="setting-group">
+                <div class="setting-item">
+                    <label for="start-time">Start Time (seconds)</label>
+                    <input type="number" id="start-time" value="0" min="0" step="0.1">
                 </div>
-                <button id="cancel-btn" class="button cancel-button">Cancel Processing</button>
-            </div>
-
-            <!-- Completed State -->
-            <div id="completed-area" class="completed-area hidden">
-                <div class="file-item completed">
-                    <span class="file-name">File Name</span>
-                    <span class="status completed">Completed!</span>
-                    <div class="info-line">Size: <span class="file-size">--</span></div>
-                    <div class="info-line">Time: <span class="time-taken">--</span></div>
-                    <div class="info-line">Avg Time: <span class="avg-time">--</span></div>
-                    <a id="download-link" class="button download-button" download="processed_file.dat" href="#">Download Processed File</a>
+                <div class="setting-item">
+                    <label for="end-time">End Time (seconds)</label>
+                    <input type="number" id="end-time" value="0" min="0" step="0.1">
                 </div>
-                <button id="reset-btn" class="button reset-button">Process Another File</button>
             </div>
-        </main>
-    </div>
+            <div class="setting-group">
+                <div class="setting-item">
+                    <label for="output-width">Output Width (pixels)</label>
+                    <input type="number" id="output-width" value="240" min="10">
+                </div>
+                <div class="setting-item">
+                    <label for="fps">Frames Per Second (FPS)</label>
+                    <input type="number" id="fps" value="10" min="1" max="60">
+                </div>
+            </div>
+            <div class="setting-group">
+                <div class="setting-item">
+                    <label for="quality">Quality (1-31, lower is better)</label>
+                    <input type="range" id="quality" min="1" max="31" value="10">
+                </div>
+            </div>
+        </div>
 
-    <!-- Settings Modal -->
-    <div id="settings-modal" class="settings-modal hidden">
-        <div class="settings-content">
-            <h3>Settings</h3>
-            <label for="quality-select">Processing Quality:</label>
-            <select id="quality-select">
-                <option value="low">Low (Fast)</option>
-                <option value="medium" selected>Medium (Default)</option>
-                <option value="high">High (Slow)</option>
-            </select>
-            <p class="setting-hint">Higher quality settings result in longer processing times.</p>
-            <button id="close-settings-btn" class="button">Close</button>
+        <!-- Convert Button -->
+        <button id="convert-btn" class="convert-button" disabled>
+            <span class="spinner"></span>
+            <span>Select a video to convert</span>
+        </button>
+
+        <!-- Status and Results Area -->
+        <div class="status-area" id="status-area">
+            <p id="status-text">Ready to convert.</p>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
+            <div class="conversion-stats" id="conversion-stats" style="display: none;">
+                <div class="stat-item">
+                    <div class="stat-value" id="final-size">0 KB</div>
+                    <div class="stat-label">GIF Size</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="time-taken">0s</div>
+                    <div class="stat-label">Time Taken</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="avg-time">N/A</div>
+                    <div class="stat-label">Avg. Time</div>
+                </div>
+            </div>
+            <a id="download-link" class="download-link" style="display: none;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Download GIF
+            </a>
         </div>
     </div>
 
     <!-- Footer -->
     <footer class="site-footer">
-        <p>© <span id="current-year"></span> Simple File Processor</p>
+        <p>© <span id="current-year"></span> jlaiii. Built with <a href="https://ffmpegwasm.netlify.app/" target="_blank" rel="noopener noreferrer" style="color: var(--color-accent); text-decoration: none;">FFmpeg.WASM</a>.</p>
     </footer>
 
-    <script>
-        const dropArea = document.getElementById('drop-area');
-        const fileInput = document.getElementById('file-input');
-        const processingArea = document.getElementById('processing-area');
-        const completedArea = document.getElementById('completed-area');
-        const settingsBtn = document.getElementById('settings-btn');
-        const settingsModal = document.getElementById('settings-modal');
-        const closeSettingsBtn = document.getElementById('close-settings-btn');
-        const qualitySelect = document.getElementById('quality-select');
-        const cancelBtn = document.getElementById('cancel-btn');
-        const resetBtn = document.getElementById('reset-btn');
+    <script type="module">
+        import { createFFmpeg, fetchFile } from 'https://unpkg.com/@ffmpeg/ffmpeg@0.12.7/dist/ffmpeg.min.js';
+        import { toBlobURL } from 'https://unpkg.com/@ffmpeg/util@0.12.1/dist/util.min.js';
 
-        // Processing UI elements
-        const fileNameSpan = processingArea.querySelector('.file-name');
-        const statusSpan = processingArea.querySelector('.status');
-        const progressBar = processingArea.querySelector('.progress-bar');
-        const runningTimeSpan = processingArea.querySelector('.running-time');
-        const estimatedTimeSpan = processingArea.querySelector('.estimated-time');
-        const avgTimeSpan = processingArea.querySelector('.avg-time');
-
-        // Completed UI elements
-        const completedFileNameSpan = completedArea.querySelector('.file-name');
-        const completedFileSizeSpan = completedArea.querySelector('.file-size');
-        const completedTimeTakenSpan = completedArea.querySelector('.time-taken');
-        const completedAvgTimeSpan = completedArea.querySelector('.avg-time');
+        // Get DOM elements
+        const fileInput = document.getElementById('video-upload');
+        const fileInputArea = document.getElementById('file-input-area');
+        const videoPlayer = document.getElementById('video-player');
+        const videoPreviewContainer = document.getElementById('video-preview-container');
+        const settingsToggle = document.getElementById('settings-toggle');
+        const settingsPanel = document.getElementById('settings-panel');
+        const startTimeInput = document.getElementById('start-time');
+        const endTimeInput = document.getElementById('end-time');
+        const outputWidthInput = document.getElementById('output-width');
+        const fpsInput = document.getElementById('fps');
+        const qualityInput = document.getElementById('quality');
+        const convertBtn = document.getElementById('convert-btn');
+        const statusText = document.getElementById('status-text');
+        const progressBar = document.getElementById('progress-bar');
+        const finalSizeStat = document.getElementById('final-size');
+        const timeTakenStat = document.getElementById('time-taken');
+        const avgTimeStat = document.getElementById('avg-time');
+        const conversionStats = document.getElementById('conversion-stats');
         const downloadLink = document.getElementById('download-link');
 
-        let processingInterval;
-        let processingStartTime;
-        let totalProcessedTime = 0; // Sum of all completed processing times
-        let processedFilesCount = 0; // Number of files processed
+        let ffmpeg = null;
+        let videoFile = null;
+        let conversionDurations = []; // To track times for average calculation
 
-        // Load quality setting and average time from localStorage
-        const savedQuality = localStorage.getItem('processingQuality');
-        if (savedQuality) {
-            qualitySelect.value = savedQuality;
-        }
-        const savedAvgTime = localStorage.getItem('averageProcessingTime');
-        const savedCount = localStorage.getItem('processedFilesCount');
-        if (savedAvgTime && savedCount) {
-            totalProcessedTime = parseFloat(savedAvgTime) * parseInt(savedCount);
-            processedFilesCount = parseInt(savedCount);
-            updateAverageTimeDisplay();
+        // Initialize FFmpeg
+        const loadFFmpeg = async () => {
+            statusText.textContent = 'Loading converter...';
+            convertBtn.disabled = true;
+            try {
+                const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.7/dist/umd'; // For ffmpeg.wasm 0.12+
+                ffmpeg = createFFmpeg({
+                    log: true,
+                    coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+                    wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+                    workerURL: await toBlobURL(`${baseURL}/ffmpeg-core.worker.js`, 'text/javascript'),
+                });
+                ffmpeg.on('log', ({ message }) => console.log(message));
+                ffmpeg.on('progress', ({ progress, time }) => {
+                    const percentage = (progress * 100).toFixed(0);
+                    progressBar.style.width = `${percentage}%`;
+                    const duration = videoPlayer.duration;
+                    const estimatedTotalTime = duration / progress; // Rough estimate
+                    const timeElapsed = time / 1000000; // time is in microseconds
+                    
+                    let estimatedRemaining = 'N/A';
+                    if (progress > 0) {
+                        estimatedRemaining = (estimatedTotalTime - timeElapsed).toFixed(1) + 's est.';
+                    }
+
+                    statusText.innerHTML = `Converting... ${percentage}% <br> (<span style="color: var(--color-accent);">${timeElapsed.toFixed(1)}s elapsed / ${estimatedRemaining}</span>)`;
+                });
+                await ffmpeg.load();
+                statusText.textContent = 'Converter loaded. Upload a video.';
+                updateConvertButtonState(); // Enable if video is already selected (unlikely on load)
+            } catch (error) {
+                console.error('Failed to load FFmpeg:', error);
+                statusText.textContent = 'Error: Failed to load converter. Please try again or check console.';
+            }
+        };
+
+        // File Input Handling
+        fileInput.addEventListener('change', async (event) => {
+            const files = event.target.files;
+            if (files.length > 0) {
+                videoFile = files[0];
+                const videoURL = URL.createObjectURL(videoFile);
+                videoPlayer.src = videoURL;
+                videoPreviewContainer.classList.add('visible');
+                statusText.textContent = `Video "${videoFile.name}" loaded.`;
+                progressBar.style.width = '0%';
+                conversionStats.style.display = 'none';
+                downloadLink.style.display = 'none';
+
+                videoPlayer.onloadedmetadata = () => {
+                    const duration = videoPlayer.duration;
+                    endTimeInput.value = duration.toFixed(1);
+                    startTimeInput.value = 0;
+                    statusText.textContent = `Video loaded. Duration: ${duration.toFixed(1)}s.`;
+                    updateConvertButtonState();
+                };
+            }
+        });
+
+        // Drag and Drop functionality
+        fileInputArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileInputArea.style.borderColor = varCss('--color-accent-hover');
+            fileInputArea.style.backgroundColor = 'rgba(0, 191, 255, 0.05)';
+        });
+
+        fileInputArea.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            fileInputArea.style.borderColor = varCss('--color-accent');
+            fileInputArea.style.backgroundColor = 'transparent';
+        });
+
+        fileInputArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileInputArea.style.borderColor = varCss('--color-accent');
+            fileInputArea.style.backgroundColor = 'transparent';
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files; // Assign dropped files to the input
+                fileInput.dispatchEvent(new Event('change')); // Trigger change event
+            }
+        });
+
+        // Helper to get CSS variable values
+        function varCss(variableName) {
+            return getComputedStyle(document.documentElement).getPropertyValue(variableName).trim();
         }
 
-        function showSection(section) {
-            dropArea.classList.add('hidden');
-            processingArea.classList.add('hidden');
-            completedArea.classList.add('hidden');
-            section.classList.remove('hidden');
-        }
+        // Settings Toggle
+        settingsToggle.addEventListener('click', () => {
+            settingsPanel.classList.toggle('visible');
+            settingsToggle.classList.toggle('active');
+        });
 
-        function updateAverageTimeDisplay() {
-            if (processedFilesCount > 0) {
-                const avgTime = totalProcessedTime / processedFilesCount;
-                avgTimeSpan.textContent = formatDuration(avgTime);
-                completedAvgTimeSpan.textContent = formatDuration(avgTime);
+        // Update Convert Button State
+        function updateConvertButtonState() {
+            if (videoFile && ffmpeg && ffmpeg.is
+                ) { // Ensure FFmpeg is loaded and video file exists
+                convertBtn.disabled = false;
+                convertBtn.querySelector('span').textContent = 'Convert to GIF';
             } else {
-                avgTimeSpan.textContent = '--';
-                completedAvgTimeSpan.textContent = '--';
+                convertBtn.disabled = true;
+                convertBtn.querySelector('span').textContent = 'Select a video to convert';
             }
         }
+        
+        // Convert Button Click
+        convertBtn.addEventListener('click', async () => {
+            if (!videoFile) {
+                statusText.textContent = 'No video selected!';
+                return;
+            }
 
-        function formatBytes(bytes, decimals = 2) {
-            if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const dm = decimals < 0 ? 0 : decimals;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
-        }
+            if (!ffmpeg || !ffmpeg.isLoaded()) {
+                statusText.textContent = 'FFmpeg is not loaded yet. Please wait...';
+                await loadFFmpeg(); // Try loading if not loaded
+                if (!ffmpeg || !ffmpeg.isLoaded()) return; // If still not loaded, exit
+            }
 
-        function formatDuration(ms) {
-            const seconds = Math.floor(ms / 1000);
-            if (seconds < 60) return `${seconds}s`;
-            const minutes = Math.floor(seconds / 60);
-            const remainingSeconds = seconds % 60;
-            return `${minutes}m ${remainingSeconds}s`;
-        }
-
-        function getProcessingDuration(fileSize) {
-            // Simulate processing time based on quality and file size
-            let baseDurationMs = 2000; // 2 seconds for a small file
-            const sizeFactor = Math.log(fileSize + 1) / Math.log(1024 * 1024); // Logarithmic scaling for size
-
-            const quality = qualitySelect.value;
-            let qualityFactor = 1;
-            if (quality === 'low') qualityFactor = 0.5;
-            else if (quality === 'high') qualityFactor = 2;
-
-            // Total duration: base + (size * factor) * quality
-            let duration = baseDurationMs + (sizeFactor * 5000 * qualityFactor);
-            return Math.max(1000, duration); // Minimum 1 second
-        }
-
-        function processFile(file) {
-            showSection(processingArea);
-            fileNameSpan.textContent = file.name;
-            statusSpan.textContent = 'Processing';
-            statusSpan.classList.remove('completed');
-            statusSpan.classList.add('processing');
+            convertBtn.disabled = true;
+            convertBtn.classList.add('loading');
+            downloadLink.style.display = 'none';
+            conversionStats.style.display = 'none';
+            statusText.textContent = 'Initializing conversion...';
             progressBar.style.width = '0%';
-            runningTimeSpan.textContent = '0s';
-            estimatedTimeSpan.textContent = '--';
 
-            const totalDuration = getProcessingDuration(file.size);
-            let elapsed = 0;
-            processingStartTime = Date.now();
+            const inputFileName = videoFile.name;
+            const outputFileName = 'output.gif';
+            const startTime = parseFloat(startTimeInput.value);
+            const endTime = parseFloat(endTimeInput.value);
+            const duration = endTime - startTime;
+            const fps = parseFloat(fpsInput.value);
+            const outputWidth = parseInt(outputWidthInput.value);
+            const quality = parseInt(qualityInput.value); // Quality (1-31, lower is better)
 
-            // Update average time display from the start
-            updateAverageTimeDisplay();
+            if (isNaN(duration) || duration <= 0) {
+                statusText.textContent = 'Error: Invalid start/end times.';
+                convertBtn.disabled = false;
+                convertBtn.classList.remove('loading');
+                return;
+            }
 
-            processingInterval = setInterval(() => {
-                elapsed = Date.now() - processingStartTime;
-                const progress = Math.min(elapsed / totalDuration, 1);
+            const startTimeMs = performance.now();
 
-                runningTimeSpan.textContent = formatDuration(elapsed);
-                progressBar.style.width = `${progress * 100}%`;
+            try {
+                // Write the file to FFmpeg's virtual file system
+                ffmpeg.FS('writeFile', inputFileName, await fetchFile(videoFile));
 
-                if (elapsed < totalDuration) {
-                    const remaining = totalDuration - elapsed;
-                    estimatedTimeSpan.textContent = formatDuration(remaining);
-                } else {
-                    clearInterval(processingInterval);
-                    onProcessingComplete(file, elapsed);
-                }
-            }, 100); // Update every 100ms for smooth progress bar
-        }
+                // FFmpeg command to convert video to GIF
+                // -ss: start time
+                // -t: duration
+                // -i: input file
+                // -vf: video filter graph (scale, fps, setpts for quality)
+                // -qscale:v: quality (lower is better, around 2-10 for good quality)
+                // -loop 0: loop indefinitely
+                // -f gif: force output format
+                const ffmpegArgs = [
+                    '-ss', startTime.toString(),
+                    '-t', duration.toString(),
+                    '-i', inputFileName,
+                    '-vf', `fps=${fps},scale=${outputWidth}:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse=dither=bayer:bayer_scale=${quality}`, // Using palettegen/paletteuse for better quality
+                    // old simpler command '-vf', `scale=${outputWidth}:-1:flags=lanczos,fps=${fps}`,
+                    // '-qscale:v', quality.toString(), // qscale is less effective for GIF quality often
+                    '-loop', '0',
+                    '-f', 'gif',
+                    outputFileName
+                ];
+                
+                await ffmpeg.exec(ffmpegArgs);
 
-        function onProcessingComplete(file, timeTaken) {
-            showSection(completedArea);
-            completedFileNameSpan.textContent = file.name;
-            completedFileSizeSpan.textContent = formatBytes(file.size);
-            completedTimeTakenSpan.textContent = formatDuration(timeTaken);
+                // Read the output GIF file
+                const data = ffmpeg.FS('readFile', outputFileName);
+                const gifBlob = new Blob([data.buffer], { type: 'image/gif' });
+                const gifURL = URL.createObjectURL(gifBlob);
 
-            // Update total and count for average
-            totalProcessedTime += timeTaken;
-            processedFilesCount++;
-            localStorage.setItem('averageProcessingTime', (totalProcessedTime / processedFilesCount).toString());
-            localStorage.setItem('processedFilesCount', processedFilesCount.toString());
-            updateAverageTimeDisplay();
+                const endTimeMs = performance.now();
+                const timeTaken = ((endTimeMs - startTimeMs) / 1000).toFixed(1);
+                conversionDurations.push(parseFloat(timeTaken));
 
-            // Simulate processed file content for download
-            const processedContent = `This is the processed content of ${file.name}.\nOriginal size: ${formatBytes(file.size)}\nProcessed in: ${formatDuration(timeTaken)}\nQuality: ${qualitySelect.value}`;
-            const blob = new Blob([processedContent], { type: 'text/plain' });
-            downloadLink.href = URL.createObjectURL(blob);
-            downloadLink.download = `processed_${file.name.split('.').slice(0, -1).join('.') || 'file'}.txt`; // Give a .txt extension
-        }
+                const gifSize = (gifBlob.size / 1024).toFixed(2); // in KB
 
-        function cancelProcessing() {
-            clearInterval(processingInterval);
-            alert('Processing cancelled.');
-            resetUI();
-        }
+                statusText.textContent = 'Conversion Complete!';
+                finalSizeStat.textContent = `${gifSize} KB`;
+                timeTakenStat.textContent = `${timeTaken}s`;
+                
+                const avgTime = conversionDurations.reduce((a, b) => a + b, 0) / conversionDurations.length;
+                avgTimeStat.textContent = `${avgTime.toFixed(1)}s`;
 
-        function resetUI() {
-            clearInterval(processingInterval);
-            showSection(dropArea);
-            progressBar.style.width = '0%';
-            runningTimeSpan.textContent = '0s';
-            estimatedTimeSpan.textContent = '--';
-            fileInput.value = ''; // Clear file input
-        }
+                conversionStats.style.display = 'flex';
+                downloadLink.href = gifURL;
+                downloadLink.download = `${videoFile.name.split('.').slice(0, -1).join('.') || 'converted'}.gif`;
+                downloadLink.style.display = 'inline-flex';
 
-        // Event Listeners
-        dropArea.addEventListener('click', () => fileInput.click());
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                processFile(e.target.files[0]);
+                // Clean up files in FFmpeg's virtual file system
+                ffmpeg.FS('unlink', inputFileName);
+                ffmpeg.FS('unlink', outputFileName);
+
+            } catch (error) {
+                console.error('Conversion failed:', error);
+                statusText.textContent = `Error during conversion: ${error.message}`;
+            } finally {
+                convertBtn.disabled = false;
+                convertBtn.classList.remove('loading');
+                progressBar.style.width = '0%'; // Reset progress bar
             }
         });
-
-        dropArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            dropArea.classList.add('hover');
-        });
-
-        dropArea.addEventListener('dragleave', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            dropArea.classList.remove('hover');
-        });
-
-        dropArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            dropArea.classList.remove('hover');
-            if (e.dataTransfer.files.length > 0) {
-                processFile(e.dataTransfer.files[0]);
-            }
-        });
-
-        settingsBtn.addEventListener('click', () => {
-            settingsModal.classList.add('show');
-        });
-
-        closeSettingsBtn.addEventListener('click', () => {
-            settingsModal.classList.remove('show');
-        });
-
-        qualitySelect.addEventListener('change', () => {
-            localStorage.setItem('processingQuality', qualitySelect.value);
-        });
-
-        cancelBtn.addEventListener('click', cancelProcessing);
-        resetBtn.addEventListener('click', resetUI);
 
         // Set current year in footer
         document.getElementById('current-year').textContent = new Date().getFullYear();
 
-        // Initial UI state
-        showSection(dropArea);
+        // Initial load of FFmpeg
+        loadFFmpeg();
+
     </script>
 </body>
 </html>
